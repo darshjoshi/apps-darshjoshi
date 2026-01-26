@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { ArrowRight, Box } from 'lucide-react';
+import { ArrowRight, Box, Linkedin, Github, X } from 'lucide-react';
 
 interface App {
   id: string;
@@ -29,11 +29,16 @@ export default function Home() {
             <div className="w-10 h-10 bg-black flex items-center justify-center glow-on-hover">
               <Box className="w-6 h-6 text-white" />
             </div>
-            <span className="text-xl font-bold tracking-tight">APPS</span>
+            <span className="text-xl font-bold tracking-tight">MINI PRODUCT SHOWCASE</span>
           </div>
-          <div className="text-sm text-gray-600 font-mono">
-            {apps.length} {apps.length === 1 ? 'App' : 'Apps'} Available
-          </div>
+          <a
+            href="https://darshjoshi.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-sm text-gray-600 font-mono hover:text-black transition-colors"
+          >
+            Back to my main website
+          </a>
         </div>
       </header>
 
@@ -42,15 +47,14 @@ export default function Home() {
         {/* Hero Section */}
         <section className="mb-24 max-w-3xl">
           <div className="inline-block mb-6 px-4 py-2 border-2 border-black text-black text-sm font-mono font-bold">
-            PERSONAL DASHBOARD
+            FEEL FREE TO TRY THEM ALL
           </div>
           <h1 className="text-7xl font-bold mb-6 leading-none tracking-tighter">
-            Your{' '}
-            <span className="inline-block border-b-4 border-black">Applications</span>
+            Products{' '}
+            <span className="inline-block border-b-4 border-black">Showcase</span>
           </h1>
           <p className="text-xl text-gray-600 leading-relaxed">
-            A centralized platform for all your web applications.
-            Built with precision. Designed for focus.
+            A collection for me to collaborate with people and add new mini applications and useful AI tools to this showcase page!
           </p>
         </section>
 
@@ -157,12 +161,46 @@ export default function Home() {
       {/* Footer */}
       <footer className="border-t-2 border-black mt-32">
         <div className="max-w-7xl mx-auto px-6 py-8">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+            {/* Copyright */}
             <div className="text-sm text-gray-600 font-mono">
               &copy; {new Date().getFullYear()} Darsh Joshi
             </div>
-            <div className="text-sm text-gray-600 font-mono">
-              Built with precision
+
+            {/* Social Links */}
+            <div className="flex items-center gap-6">
+              <span className="text-sm text-gray-600 font-mono font-bold">
+                OPEN FOR COLLABORATION!
+              </span>
+              <div className="flex items-center gap-3">
+                <a
+                  href="https://www.linkedin.com/in/darshjoshi"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-9 h-9 border-2 border-black bg-white hover:bg-black text-black hover:text-white transition-all duration-300 flex items-center justify-center group"
+                  aria-label="LinkedIn"
+                >
+                  <Linkedin className="w-4 h-4" />
+                </a>
+                <a
+                  href="https://github.com/darshjoshi"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-9 h-9 border-2 border-black bg-white hover:bg-black text-black hover:text-white transition-all duration-300 flex items-center justify-center group"
+                  aria-label="GitHub"
+                >
+                  <Github className="w-4 h-4" />
+                </a>
+                <a
+                  href="https://x.com/darshjoshii"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-9 h-9 border-2 border-black bg-white hover:bg-black text-black hover:text-white transition-all duration-300 flex items-center justify-center group"
+                  aria-label="X (Twitter)"
+                >
+                  <X className="w-4 h-4" />
+                </a>
+              </div>
             </div>
           </div>
         </div>

@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { exampleAppAPI } from '@/lib/api';
 import Link from 'next/link';
-import { ArrowLeft, Box, Zap, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, Box, Zap, AlertCircle, CheckCircle2, Linkedin, Github, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 export default function ExampleApp() {
@@ -168,12 +168,46 @@ export default function ExampleApp() {
       {/* Footer */}
       <footer className="border-t-2 border-black mt-32">
         <div className="max-w-7xl mx-auto px-6 py-8">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+            {/* Copyright */}
             <div className="text-sm text-gray-600 font-mono">
               &copy; {new Date().getFullYear()} Darsh Joshi
             </div>
-            <div className="text-sm text-gray-600 font-mono">
-              Example Application
+
+            {/* Social Links */}
+            <div className="flex items-center gap-6">
+              <span className="text-sm text-gray-600 font-mono font-bold">
+                OPEN FOR COLLABORATION!
+              </span>
+              <div className="flex items-center gap-3">
+                <a
+                  href="https://www.linkedin.com/in/darshjoshi"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-9 h-9 border-2 border-black bg-white hover:bg-black text-black hover:text-white transition-all duration-300 flex items-center justify-center group"
+                  aria-label="LinkedIn"
+                >
+                  <Linkedin className="w-4 h-4" />
+                </a>
+                <a
+                  href="https://github.com/darshjoshi"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-9 h-9 border-2 border-black bg-white hover:bg-black text-black hover:text-white transition-all duration-300 flex items-center justify-center group"
+                  aria-label="GitHub"
+                >
+                  <Github className="w-4 h-4" />
+                </a>
+                <a
+                  href="https://x.com/darshjoshii"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-9 h-9 border-2 border-black bg-white hover:bg-black text-black hover:text-white transition-all duration-300 flex items-center justify-center group"
+                  aria-label="X (Twitter)"
+                >
+                  <X className="w-4 h-4" />
+                </a>
+              </div>
             </div>
           </div>
         </div>
