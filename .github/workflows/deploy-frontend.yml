@@ -20,13 +20,13 @@ on:
         type: string
     secrets:
       NEXT_PUBLIC_API_URL:
-        required: true
+        required: false
       NEXT_PUBLIC_API_KEY:
         required: false
       NETLIFY_AUTH_TOKEN:
-        required: true
+        required: false
       NETLIFY_SITE_ID:
-        required: true
+        required: false
 
 jobs:
   deploy:
