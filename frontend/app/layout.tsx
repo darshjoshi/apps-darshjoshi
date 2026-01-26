@@ -13,8 +13,36 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://apps.darshjoshi.com'),
   title: "Apps Dashboard | Darsh Joshi",
-  description: "Personal collection of applications. Designed with minimalism and focus in mind.",
+  description: "A collection for me to collaborate with people and add new mini applications and useful AI tools to this showcase page!",
+  icons: {
+    icon: '/favicon.svg',
+  },
+  openGraph: {
+    type: 'website',
+    locale: 'en_US',
+    url: 'https://apps.darshjoshi.com',
+    title: 'Apps Dashboard | Darsh Joshi',
+    description: 'A collection for me to collaborate with people and add new mini applications and useful AI tools to this showcase page!',
+    siteName: 'Apps Dashboard',
+    images: [
+      {
+        url: '/api/og',
+        width: 1200,
+        height: 630,
+        alt: 'Apps Dashboard - Mini Product Showcase',
+        type: 'image/png',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Apps Dashboard | Darsh Joshi',
+    description: 'A collection of mini applications and useful AI tools',
+    creator: '@darshjoshii',
+    images: ['/api/og'],
+  },
 };
 
 export default function RootLayout({
