@@ -123,6 +123,43 @@ app.include_router(app{N}.router, prefix=settings.API_V1_STR)
 ### 2. Frontend Route (Next.js)
 Create `frontend/app/app{N}/page.tsx` following the existing pattern in example-app.
 
+**Add Layout with Metadata for Link Previews:**
+Create `frontend/app/app{N}/layout.tsx`:
+```typescript
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "App Name | Apps Dashboard",
+  description: "Brief description of your app",
+  openGraph: {
+    type: 'website',
+    title: 'App Name | Apps Dashboard',
+    description: 'Brief description of your app',
+    url: 'https://apps.darshjoshi.com/app{N}',
+    images: [
+      {
+        url: '/api/og?title=App Name&description=Brief description',
+        width: 1200,
+        height: 630,
+        alt: 'App Name - Apps Dashboard',
+        type: 'image/png',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'App Name | Apps Dashboard',
+    description: 'Brief description of your app',
+    creator: '@darshjoshii',
+    images: ['/api/og?title=App Name&description=Brief description'],
+  },
+};
+
+export default function AppLayout({ children }: { children: React.ReactNode }) {
+  return children;
+}
+```
+
 ### 3. API Client
 Add to `frontend/lib/api.ts`:
 ```typescript
@@ -134,6 +171,79 @@ export const app{N}API = {
 
 ### 4. Homepage Card
 Add app card to `frontend/app/page.tsx` in the `apps` array.
+
+### 5. Use Reusable Components
+- **Logo Component**: Import `Logo` from `@/components/ui/logo` for consistent branding
+- **Button Component**: Import `Button` from `@/components/ui/button` for styled buttons
+- **Design Classes**: Use `.grid-bg`, `.border-hover`, `.glow-on-hover` for consistent styling
+
+## Branding & UI Components
+
+### Custom Favicon
+The site uses a custom JD logo favicon that matches the brutalist design theme:
+- **Location**: `/frontend/public/favicon.svg`
+- **Logo Component**: `/frontend/components/ui/logo.tsx` - Reusable JD logo component
+- **Design**: Black square with white "JD" letters in monospace font with accent line
+- **Configuration**: Referenced in `/frontend/app/layout.tsx` metadata
+
+### Custom 404 Page
+A witty, branded 404 error page matching the site's design language:
+- **Location**: `/frontend/app/not-found.tsx`
+- **Style**: White background with brutalist borders, JD logo, witty copy
+- **Features**:
+  - Humorous stats ("0 HELPFUL HINTS", "∞ BETTER PLACES")
+  - Back to homepage button
+  - Matches the grid background effect from homepage
+
+### Dynamic Link Previews (Open Graph)
+The platform generates dynamic social media preview images for all pages:
+
+**Image Generator:**
+- **Route**: `/frontend/app/api/og/route.tsx`
+- **Type**: Edge runtime API route using `next/og` ImageResponse
+- **Size**: 1200x630px (standard OG image size)
+- **Style**: White background with subtle grid pattern, matching site design
+- **Features**:
+  - Dynamic title and description via query parameters
+  - JD logo and "MINI PRODUCT SHOWCASE" branding
+  - Brutalist corner accents
+  - Monospace typography
+
+**Query Parameters:**
+- `title` - Page title (default: "Apps Dashboard")
+- `description` - Page description (default: site description)
+
+**Example URLs:**
+```
+/api/og
+/api/og?title=Example%20App&description=Template%20application
+```
+
+**Metadata Configuration:**
+- Root layout (`/frontend/app/layout.tsx`) includes comprehensive Open Graph and Twitter Card metadata
+- Per-page metadata in nested layouts (e.g., `/frontend/app/example-app/layout.tsx`)
+- Uses `metadataBase` for absolute URL generation
+
+**Social Platform Support:**
+- Twitter/X Cards (summary_large_image)
+- LinkedIn previews
+- Facebook Open Graph
+- Discord, Slack, and other platforms that support OG protocol
+
+**Testing Link Previews:**
+1. Visit `/api/og` directly to see generated image
+2. Use validators:
+   - Twitter Card Validator: https://cards-dev.twitter.com/validator
+   - LinkedIn Post Inspector: https://www.linkedin.com/post-inspector/
+   - Facebook Sharing Debugger: https://developers.facebook.com/tools/debug/
+   - Generic OG Checker: https://www.opengraph.xyz/
+
+### Design System
+- **Theme**: Light mode only, high contrast black & white
+- **Typography**: Geist Sans and Geist Mono fonts
+- **Grid Background**: Subtle 50px grid pattern (`.grid-bg` class)
+- **Borders**: 2px solid black borders for components
+- **Corner Accents**: Brutalist design elements on cards
 
 ## Key Architecture Patterns
 
@@ -254,6 +364,11 @@ NEXT_PUBLIC_API_KEY=<value-from-render>
 4. Configure custom domain: `apps.darshjoshi.com`
 5. Update GoDaddy DNS: CNAME `apps` → Netlify site
 
+**Important Notes:**
+- OG image route (`/api/og`) uses Edge Runtime and deploys automatically
+- After deployment, test link previews with social media validators
+- Link preview images are generated on-demand (no build-time generation needed)
+
 ### Backend (Render)
 **Configuration:**
 - Configured via `backend/render.yaml` (infrastructure as code)
@@ -356,3 +471,50 @@ Repository owner: Darsh Joshi (contact@darshjoshi.com)
 - Frontend has `.gitignore` that excludes `.env*` except `.env.example`
 - Backend has separate `.gitignore` for Python artifacts
 - Root `.gitignore` for OS files
+
+## Quick Reference: Key Files
+
+### Frontend Structure
+```
+frontend/
+├── app/
+│   ├── layout.tsx                    # Root layout with metadata
+│   ├── page.tsx                      # Homepage with app cards
+│   ├── not-found.tsx                 # Custom 404 page
+│   ├── globals.css                   # Global styles & design system
+│   ├── example-app/
+│   │   ├── layout.tsx                # App-specific metadata
+│   │   └── page.tsx                  # App page component
+│   └── api/
+│       └── og/
+│           └── route.tsx             # Dynamic OG image generator
+├── components/
+│   └── ui/
+│       ├── logo.tsx                  # Reusable JD logo component
+│       └── button.tsx                # Styled button component
+├── lib/
+│   └── api.ts                        # API client configuration
+├── public/
+│   └── favicon.svg                   # Site favicon
+└── netlify.toml                      # Netlify deployment config
+```
+
+### Backend Structure
+```
+backend/
+├── main.py                           # FastAPI app entry point
+├── app/
+│   ├── config.py                     # Settings & configuration
+│   ├── dependencies.py               # API key verification
+│   └── api/
+│       └── routes/
+│           └── example_app.py        # Example app routes
+├── requirements.txt                  # Python dependencies
+└── render.yaml                       # Render deployment config
+```
+
+### Important Files to Update When:
+- **Adding new app**: `app/page.tsx` (homepage), `lib/api.ts`, backend routes, create app layout with metadata
+- **Changing branding**: `components/ui/logo.tsx`, `public/favicon.svg`, `api/og/route.tsx`
+- **Updating design**: `globals.css` (design system variables and utilities)
+- **Modifying metadata**: `app/layout.tsx` (root), per-app `layout.tsx` files
