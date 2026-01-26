@@ -1,48 +1,34 @@
 @import "tailwindcss";
 
 :root {
-  /* Base - Light Mode */
-  --background: #ffffff;
-  --foreground: #09090b; /* Zinc 950 */
+  /* Pure Black & White Theme */
+  --background: #000000;
+  --foreground: #ffffff;
 
-  /* Primary Brand Color - User Requested #2632D4 */
-  --primary: #2632D4;
-  --primary-foreground: #ffffff;
+  /* Primary - White with glow */
+  --primary: #ffffff;
+  --primary-foreground: #000000;
 
-  /* Secondary - Soft gray for contrast */
-  --secondary: #f4f4f5; /* Zinc 100 */
-  --secondary-foreground: #18181b; /* Zinc 900 */
+  /* Secondary - Subtle gray */
+  --secondary: #1a1a1a;
+  --secondary-foreground: #ffffff;
 
-  /* Muted - For subtle text/bg */
-  --muted: #f4f4f5; /* Zinc 100 */
-  --muted-foreground: #71717a; /* Zinc 500 */
+  /* Muted - Dark gray tones */
+  --muted: #0a0a0a;
+  --muted-foreground: #666666;
 
-  /* Borders / Input lines */
-  --border: #e4e4e7; /* Zinc 200 */
-  --radius: 0.5rem;
-}
+  /* Borders - Subtle white */
+  --border: #1a1a1a;
+  --input: #1a1a1a;
+  --ring: #ffffff;
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    /* Base - Dark Mode */
-    --background: #09090b; /* Zinc 950 */
-    --foreground: #fafafa; /* Zinc 50 */
+  /* Glow colors */
+  --glow: #ffffff;
+  --glow-strong: rgba(255, 255, 255, 0.8);
+  --glow-subtle: rgba(255, 255, 255, 0.1);
 
-    /* Primary - Adjusted slightly for dark mode visibility if needed, keeps brand identity */
-    --primary: #3c46e0; /* Slightly lighter shade of #2632D4 for better contrast on dark */
-    --primary-foreground: #ffffff;
-
-    /* Secondary */
-    --secondary: #27272a; /* Zinc 800 */
-    --secondary-foreground: #fafafa; /* Zinc 50 */
-
-    /* Muted */
-    --muted: #27272a; /* Zinc 800 */
-    --muted-foreground: #a1a1aa; /* Zinc 400 */
-
-    /* Borders */
-    --border: #27272a; /* Zinc 800 */
-  }
+  /* Sharp corners - no radius */
+  --radius: 0;
 }
 
 @theme inline {
@@ -55,19 +41,102 @@
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
   --color-border: var(--border);
-  
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-  
-  --radius-sm: calc(var(--radius) - 2px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
+
+  --radius-none: 0;
+  --radius-sm: 0;
+  --radius-md: 0;
+  --radius-lg: 0;
+}
+
+* {
+  border-radius: 0 !important;
 }
 
 body {
-  background-color: var(--background);
-  color: var(--foreground);
+  background-color: #000000;
+  color: #ffffff;
   font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* Glow effects */
+.glow-on-hover {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.glow-on-hover:hover {
+  box-shadow:
+    0 0 20px rgba(255, 255, 255, 0.3),
+    0 0 40px rgba(255, 255, 255, 0.2),
+    inset 0 0 40px rgba(255, 255, 255, 0.05);
+}
+
+.glow-border {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.glow-border-hover {
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.glow-border-hover:hover {
+  border-color: rgba(255, 255, 255, 0.4);
+  box-shadow: 0 0 30px rgba(255, 255, 255, 0.2);
+}
+
+/* Strong glow for emphasis */
+.glow-strong {
+  box-shadow:
+    0 0 30px rgba(255, 255, 255, 0.4),
+    0 0 60px rgba(255, 255, 255, 0.3),
+    inset 0 0 20px rgba(255, 255, 255, 0.1);
+}
+
+/* Text glow */
+.text-glow {
+  text-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
+}
+
+/* Grid pattern background (subtle) */
+.grid-bg {
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+  background-size: 50px 50px;
+}
+
+/* Selection styling */
+::selection {
+  background-color: #ffffff;
+  color: #000000;
+}
+
+::-moz-selection {
+  background-color: #ffffff;
+  color: #000000;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: #000000;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #1a1a1a;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #2a2a2a;
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
 }

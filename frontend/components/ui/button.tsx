@@ -18,19 +18,19 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
             <button
                 ref={ref}
                 className={cn(
-                    "inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 pointer-events-auto cursor-pointer",
+                    "inline-flex items-center justify-center whitespace-nowrap text-sm font-medium transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-black disabled:pointer-events-none disabled:opacity-50 pointer-events-auto cursor-pointer font-mono tracking-wider",
                     {
-                        "bg-primary text-primary-foreground hover:bg-primary/90":
+                        "bg-white text-black hover:bg-white/90 glow-on-hover border border-white":
                             variant === "default",
-                        "border border-input bg-background hover:bg-secondary hover:text-secondary-foreground":
+                        "border border-white/20 bg-black text-white hover:bg-white/10 hover:border-white/40":
                             variant === "outline",
-                        "hover:bg-secondary hover:text-secondary-foreground":
+                        "hover:bg-white/10 hover:text-white text-white/60":
                             variant === "ghost",
-                        "text-primary underline-offset-4 hover:underline":
+                        "text-white underline-offset-4 hover:underline":
                             variant === "link",
-                        "h-10 px-4 py-2": size === "default",
-                        "h-9 rounded-md px-3": size === "sm",
-                        "h-11 rounded-md px-8": size === "lg",
+                        "h-10 px-6 py-2": size === "default",
+                        "h-9 px-4": size === "sm",
+                        "h-12 px-8": size === "lg",
                         "h-10 w-10": size === "icon",
                     },
                     className
