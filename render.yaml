@@ -2,10 +2,12 @@ services:
   - type: web
     name: apps-dashboard-api
     env: python
+    rootDirectory: backend
     region: virginia
     plan: starter_plus
     buildCommand: pip install -r requirements.txt
     startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    autoDeploy: false
     envVars:
       - key: ENVIRONMENT
         value: production
