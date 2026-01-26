@@ -1,31 +1,30 @@
 @import "tailwindcss";
 
 :root {
-  /* Pure Black & White Theme */
-  --background: #000000;
-  --foreground: #ffffff;
+  /* Pure White & Black Theme - Light Mode */
+  --background: #ffffff;
+  --foreground: #000000;
 
-  /* Primary - White with glow */
-  --primary: #ffffff;
-  --primary-foreground: #000000;
+  /* Primary - Black with subtle accents */
+  --primary: #000000;
+  --primary-foreground: #ffffff;
 
-  /* Secondary - Subtle gray */
-  --secondary: #1a1a1a;
-  --secondary-foreground: #ffffff;
+  /* Secondary - Light gray */
+  --secondary: #f5f5f5;
+  --secondary-foreground: #000000;
 
-  /* Muted - Dark gray tones */
-  --muted: #0a0a0a;
+  /* Muted - Grays for secondary text */
+  --muted: #f5f5f5;
   --muted-foreground: #666666;
 
-  /* Borders - Subtle white */
-  --border: #1a1a1a;
-  --input: #1a1a1a;
-  --ring: #ffffff;
+  /* Borders - Visible black borders */
+  --border: #e5e5e5;
+  --input: #e5e5e5;
+  --ring: #000000;
 
-  /* Glow colors */
-  --glow: #ffffff;
-  --glow-strong: rgba(255, 255, 255, 0.8);
-  --glow-subtle: rgba(255, 255, 255, 0.1);
+  /* Accent colors */
+  --accent: #000000;
+  --accent-subtle: rgba(0, 0, 0, 0.05);
 
   /* Sharp corners - no radius */
   --radius: 0;
@@ -58,68 +57,66 @@
 }
 
 body {
-  background-color: #000000;
-  color: #ffffff;
+  background-color: #ffffff;
+  color: #000000;
   font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Glow effects */
+/* Shadow/Glow effects for light mode */
 .glow-on-hover {
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .glow-on-hover:hover {
   box-shadow:
-    0 0 20px rgba(255, 255, 255, 0.3),
-    0 0 40px rgba(255, 255, 255, 0.2),
-    inset 0 0 40px rgba(255, 255, 255, 0.05);
+    0 4px 20px rgba(0, 0, 0, 0.1),
+    0 8px 40px rgba(0, 0, 0, 0.08);
+  transform: translateY(-2px);
 }
 
-.glow-border {
-  border: 1px solid rgba(255, 255, 255, 0.1);
+.border-subtle {
+  border: 1px solid #e5e5e5;
 }
 
-.glow-border-hover {
+.border-strong {
+  border: 2px solid #000000;
+}
+
+.border-hover {
   transition: border-color 0.3s ease, box-shadow 0.3s ease;
 }
 
-.glow-border-hover:hover {
-  border-color: rgba(255, 255, 255, 0.4);
-  box-shadow: 0 0 30px rgba(255, 255, 255, 0.2);
+.border-hover:hover {
+  border-color: #000000;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
 }
 
-/* Strong glow for emphasis */
-.glow-strong {
+/* Strong emphasis with shadow */
+.shadow-strong {
   box-shadow:
-    0 0 30px rgba(255, 255, 255, 0.4),
-    0 0 60px rgba(255, 255, 255, 0.3),
-    inset 0 0 20px rgba(255, 255, 255, 0.1);
-}
-
-/* Text glow */
-.text-glow {
-  text-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
+    0 4px 20px rgba(0, 0, 0, 0.15),
+    0 8px 40px rgba(0, 0, 0, 0.1);
 }
 
 /* Grid pattern background (subtle) */
 .grid-bg {
   background-image:
-    linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+    linear-gradient(rgba(0, 0, 0, 0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 0, 0, 0.02) 1px, transparent 1px);
   background-size: 50px 50px;
 }
 
 /* Selection styling */
 ::selection {
-  background-color: #ffffff;
-  color: #000000;
+  background-color: #000000;
+  color: #ffffff;
 }
 
 ::-moz-selection {
-  background-color: #ffffff;
-  color: #000000;
+  background-color: #000000;
+  color: #ffffff;
 }
 
 /* Scrollbar styling */
@@ -128,15 +125,36 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-  background: #000000;
+  background: #ffffff;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #1a1a1a;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: #e5e5e5;
+  border: 1px solid #d0d0d0;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #2a2a2a;
-  box-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+  background: #d0d0d0;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+}
+
+/* Utility classes */
+.text-primary {
+  color: #000000;
+}
+
+.text-secondary {
+  color: #666666;
+}
+
+.text-muted {
+  color: #999999;
+}
+
+.bg-accent {
+  background-color: #f5f5f5;
+}
+
+.bg-accent-hover:hover {
+  background-color: #f0f0f0;
 }
