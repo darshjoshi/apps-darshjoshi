@@ -2,7 +2,8 @@ services:
   - type: web
     name: apps-dashboard-api
     env: python
-    region: oregon
+    region: virginia
+    plan: starter_plus
     buildCommand: pip install -r requirements.txt
     startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
     envVars:
