@@ -18,6 +18,13 @@ const apps: App[] = [
     href: '/example-app',
     status: 'active',
   },
+  {
+    id: 'ats-boss',
+    name: 'ATS Boss',
+    description: 'Beat the ATS robots. Analyze and optimize your resume for Workday, Greenhouse, Lever, and Ashby systems.',
+    href: '/ats-boss',
+    status: 'active',
+  },
 ];
 
 export default function Home() {
