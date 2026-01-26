@@ -1,7 +1,20 @@
+import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
-from app.api.routes import example_app
+from app.api.routes import example_app, ats_boss
+
+# Configure logging for the entire application
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s | %(levelname)-8s | %(name)s | %(message)s',
+    datefmt='%H:%M:%S'
+)
+
+# Set specific log levels
+logging.getLogger("app.services").setLevel(logging.DEBUG)  # Verbose for our services
+logging.getLogger("httpx").setLevel(logging.WARNING)  # Reduce noise from HTTP client
+logging.getLogger("openai").setLevel(logging.WARNING)  # Reduce noise from OpenAI client
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -42,6 +55,7 @@ async def health_check():
 
 # Include routers
 app.include_router(example_app.router, prefix=settings.API_V1_STR)
+app.include_router(ats_boss.router, prefix=settings.API_V1_STR)
 
 
 # Startup event
