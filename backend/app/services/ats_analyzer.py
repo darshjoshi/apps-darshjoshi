@@ -101,12 +101,25 @@ async def analyze_resume(
             # Lever: Complex NLP - use OpenAI for this (too complex to replicate)
             logger.info("[ATS_ANALYZER] Using Lever parser (OpenAI-based NLP)")
             from app.services.openai_service import analyze_resume_with_openai
-            parsing_results = await analyze_resume_with_openai(
+            raw_lever_results = await analyze_resume_with_openai(
                 resume_text=resume_text,
                 job_description=job_description.strip(),
                 ats_system="lever",
                 tracker=tracker
             )
+            
+            # Flatten the structure to match what Step 4 expects
+            # Step 4 expects keys like 'matched_keywords', 'extracted_sections' to be at the top level
+            parsing_results = {
+                "overall_score": raw_lever_results.get("overall_score", 0),
+                "keyword_match_rate": raw_lever_results.get("keyword_match_rate", 0),
+                "ats_compatible": raw_lever_results.get("ats_compatible", False),
+                "recommendations": raw_lever_results.get("recommendations", []),
+                "ats_specific_tips": raw_lever_results.get("ats_specific_tips", []),
+                # Unwrap nested objects
+                **raw_lever_results.get("parsing_results", {}),
+                **raw_lever_results.get("keyword_analysis", {})
+            }
             logger.info("[ATS_ANALYZER] ✓ Lever parsing complete")
         else:
             raise ValueError(f"Unknown ATS system: {ats_system}")
