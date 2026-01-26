@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // Determine the API base URL and key based on environment
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
 const API_KEY = process.env.NEXT_PUBLIC_API_KEY || '';
 
 // Create axios instance with default configuration
@@ -52,6 +52,6 @@ export default api;
 
 // Example API functions for different apps
 export const exampleAppAPI = {
-  getData: () => api.get('/api/example-app/data'),
-  postData: (data: any) => api.post('/api/example-app/data', data),
+  getData: () => api.get('/example-app/data'),
+  postData: (data: any) => api.post('/example-app/data', data),
 };
