@@ -186,7 +186,7 @@ class AshbyParser:
             issues.append("Resume appears very short - may be incomplete extraction")
 
         # Check for completely garbled text
-        special_char_ratio = sum(1 for c in text if not c.isalnum() and c not in ' \n.,;:-()\[]"\'') / max(len(text), 1)
+        special_char_ratio = sum(1 for c in text if not c.isalnum() and c not in ' \n.,;:-()[]"\'') / max(len(text), 1)
         if special_char_ratio > 0.30:
             issues.append("Significant text extraction issues detected")
 
