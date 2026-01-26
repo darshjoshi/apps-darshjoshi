@@ -1,0 +1,31 @@
+name: Deploy Full Stack
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Frontend Environment'
+        required: true
+        default: 'production'
+        type: choice
+        options:
+          - production
+          - preview
+      clear_cache:
+        description: 'Clear Backend Cache'
+        required: false
+        default: false
+        type: boolean
+
+jobs:
+  deploy-backend:
+    uses: ./.github/workflows/deploy-backend.yml
+    with:
+      clear_cache: ${{ inputs.clear_cache }}
+    secrets: inherit
+
+  deploy-frontend:
+    uses: ./.github/workflows/deploy-frontend.yml
+    with:
+      environment: ${{ inputs.environment }}
+    secrets: inherit

@@ -8,6 +8,16 @@ on:
         required: false
         default: false
         type: boolean
+  workflow_call:
+    inputs:
+      clear_cache:
+        description: 'Clear build cache before deployment'
+        required: false
+        default: false
+        type: boolean
+    secrets:
+      RENDER_DEPLOY_HOOK_URL:
+        required: true
 
 jobs:
   deploy:

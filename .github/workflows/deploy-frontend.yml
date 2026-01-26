@@ -11,6 +11,22 @@ on:
         options:
           - production
           - preview
+  workflow_call:
+    inputs:
+      environment:
+        description: 'Deployment environment'
+        required: true
+        default: 'production'
+        type: string
+    secrets:
+      NEXT_PUBLIC_API_URL:
+        required: true
+      NEXT_PUBLIC_API_KEY:
+        required: true
+      NETLIFY_AUTH_TOKEN:
+        required: true
+      NETLIFY_SITE_ID:
+        required: true
 
 jobs:
   deploy:
