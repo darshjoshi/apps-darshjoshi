@@ -71,7 +71,7 @@ When backend is running, auto-generated docs are available at:
 **Without API Key (development with API_KEY unset):**
 ```bash
 curl http://localhost:8000/health
-curl http://localhost:8000/api/app1/data
+curl http://localhost:8000/api/example-app/data
 ```
 
 **With API Key (production or when API_KEY is set):**
@@ -80,14 +80,13 @@ curl http://localhost:8000/api/app1/data
 curl https://apis.darshjoshi.com/health
 
 # Protected endpoints (require X-API-Key header)
-curl -H "X-API-Key: your-api-key-here" https://apis.darshjoshi.com/api/app1/data
-curl -H "X-API-Key: your-api-key-here" https://apis.darshjoshi.com/api/app2/data
+curl -H "X-API-Key: your-api-key-here" https://apis.darshjoshi.com/api/example-app/data
 
 # POST request with API key
 curl -X POST -H "X-API-Key: your-api-key-here" \
   -H "Content-Type: application/json" \
   -d '{"test": "data"}' \
-  https://apis.darshjoshi.com/api/app1/data
+  https://apis.darshjoshi.com/api/example-app/data
 ```
 
 **Expected error without API key:**
@@ -116,13 +115,13 @@ async def get_data() -> Dict[str, Any]:
 
 Register in `backend/main.py`:
 ```python
-from app.api.routes import app1, app2, app{N}
+from app.api.routes import example_app, app{N}
 # ...
 app.include_router(app{N}.router, prefix=settings.API_V1_STR)
 ```
 
 ### 2. Frontend Route (Next.js)
-Create `frontend/app/app{N}/page.tsx` following the existing pattern in app1/app2.
+Create `frontend/app/app{N}/page.tsx` following the existing pattern in example-app.
 
 ### 3. API Client
 Add to `frontend/lib/api.ts`:

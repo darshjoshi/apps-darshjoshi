@@ -8,8 +8,7 @@ A full-stack application dashboard built with Next.js 14+ and FastAPI, designed 
 apps-darshjoshi/
 ├── frontend/              # Next.js 14+ frontend
 │   ├── app/              # Next.js App Router
-│   │   ├── app1/        # Individual app 1
-│   │   ├── app2/        # Individual app 2
+│   │   ├── example-app/ # Example application
 │   │   ├── page.tsx     # Homepage with app cards
 │   │   └── layout.tsx   # Root layout
 │   ├── components/       # Shared React components
@@ -20,8 +19,7 @@ apps-darshjoshi/
 │   ├── app/
 │   │   ├── api/
 │   │   │   └── routes/  # API route handlers
-│   │   │       ├── app1.py
-│   │   │       └── app2.py
+│   │   │       └── example_app.py
 │   │   ├── models/      # Database models
 │   │   ├── schemas/     # Pydantic schemas
 │   │   ├── services/    # Business logic
@@ -132,35 +130,170 @@ npm run dev
 
 The frontend will make API calls to `http://localhost:8000/api` as configured in `.env.local`.
 
-### Adding a New App
+### Testing Endpoints
 
-1. **Frontend**: Create a new directory in `frontend/app/` (e.g., `app/app3/`)
-   - Add a `page.tsx` file with your app component
-   - Add the app to the homepage cards in `app/page.tsx`
-   - Create API functions in `lib/api.ts`
+**Without API Key (development or when API_KEY is unset):**
+```bash
+# Public endpoints
+curl http://localhost:8000/health
 
-2. **Backend**: Create a new router in `backend/app/api/routes/`
-   - Create `app3.py` with your API endpoints
-   - Register the router in `main.py`
+# Protected endpoints (no key needed in dev)
+curl http://localhost:8000/api/example-app/data
+```
 
-Example router:
+**With API Key (production or when API_KEY is set):**
+```bash
+# Public endpoints (no key needed)
+curl https://apis.darshjoshi.com/health
+
+# Protected endpoints (require X-API-Key header)
+curl -H "X-API-Key: your-api-key-here" https://apis.darshjoshi.com/api/example-app/data
+
+# POST request with API key
+curl -X POST -H "X-API-Key: your-api-key-here" \
+  -H "Content-Type: application/json" \
+  -d '{"test": "data"}' \
+  https://apis.darshjoshi.com/api/example-app/data
+```
+
+**Expected error without API key:**
+```json
+{
+  "detail": "Invalid or missing API key"
+}
+```
+
+## Adding a New App
+
+Follow this pattern to add a new app to the platform:
+
+### 1. Backend Route (FastAPI)
+Create `backend/app/api/routes/app{N}.py`:
 ```python
-# backend/app/api/routes/app3.py
 from fastapi import APIRouter
+from typing import Dict, Any
 
-router = APIRouter(prefix="/app3", tags=["app3"])
+router = APIRouter(prefix="/app{N}", tags=["app{N}"])
 
 @router.get("/data")
-async def get_data():
-    return {"message": "Hello from App 3"}
+async def get_data() -> Dict[str, Any]:
+    return {"message": "Hello from App {N}"}
 ```
 
-Register in `main.py`:
+Register in `backend/main.py`:
 ```python
-from app.api.routes import app1, app2, app3
-
-app.include_router(app3.router, prefix=settings.API_V1_STR)
+from app.api.routes import example_app, app{N}
+# ...
+app.include_router(app{N}.router, prefix=settings.API_V1_STR)
 ```
+
+### 2. Frontend Route (Next.js)
+Create `frontend/app/app{N}/page.tsx` following the existing pattern in example-app.
+
+### 3. API Client
+Add to `frontend/lib/api.ts`:
+```typescript
+export const app{N}API = {
+  getData: () => api.get('/api/app{N}/data'),
+  postData: (data: any) => api.post('/api/app{N}/data', data),
+};
+```
+
+### 4. Homepage Card
+Add app card to `frontend/app/page.tsx` in the `apps` array.
+
+## Key Architecture Patterns
+
+### API Key Authentication
+The platform uses API key authentication to protect all app endpoints.
+
+**Implementation:**
+- Authentication logic in `app/dependencies.py` - `verify_api_key` function
+- Checks `X-API-Key` header against `settings.API_KEY`
+- If `API_KEY` is empty/unset, authentication is **disabled** (development mode)
+- If `API_KEY` is set, all protected routes require valid key
+
+**Protected Routes:**
+- All `/api/app{N}/*` endpoints require API key
+- Root `/` and `/health` remain **public** (no key needed)
+
+**Adding API Key to New Routes:**
+```python
+from fastapi import APIRouter, Depends
+from app.dependencies import verify_api_key
+
+router = APIRouter(
+    prefix="/app{N}",
+    tags=["app{N}"],
+    dependencies=[Depends(verify_api_key)]  # This protects all routes
+)
+```
+
+**Frontend API Key Usage:**
+The axios client in `lib/api.ts` automatically adds `X-API-Key` header:
+- Reads from `NEXT_PUBLIC_API_KEY` environment variable
+- If empty, no header is added (works with disabled auth)
+- All API calls include the key when configured
+
+### Environment Variables
+**Frontend:**
+- `NEXT_PUBLIC_API_URL` - Backend endpoint
+  - Dev: `http://localhost:8000/api` (from `.env.local`)
+  - Prod: `https://apis.darshjoshi.com/api` (from `.env.production`)
+- `NEXT_PUBLIC_API_KEY` - API key for authentication
+  - Dev: Empty or unset (optional in development)
+  - Prod: Set in Netlify dashboard with value from Render
+
+**Backend:**
+- Uses Pydantic Settings to load from `.env`
+- All settings defined in `app/config.py`
+- `API_KEY` - If empty, authentication disabled; if set, required for all app routes
+- `BACKEND_CORS_ORIGINS` - Comma-separated list (parsed by model_validator)
+- `SECRET_KEY` - Auto-generated in Render for production
+
+### API Client Pattern
+The `lib/api.ts` file exports a configured axios instance that:
+- Automatically prefixes all requests with the API base URL
+- Includes request/response interceptors (ready for auth tokens)
+- Handles errors globally with console logging
+- Each app exports its own API object (e.g., `exampleAppAPI`, `app2API`)
+
+### FastAPI Router Registration
+All API routes are prefixed with `/api` (defined in `settings.API_V1_STR`):
+- Individual routers define their own prefix (e.g., `/example-app`)
+- Final URL structure: `/api/app{N}/{endpoint}`
+- Tags in routers organize endpoints in auto-generated docs
+
+### Configuration Management
+Backend uses `pydantic-settings` with `.env` file:
+- Settings class in `app/config.py` defines all configuration
+- Environment variables automatically override defaults
+- CORS origins list supports both dev and prod URLs simultaneously
+
+**CORS Origins Parsing:**
+The `BACKEND_CORS_ORIGINS` field uses a special pattern to handle environment variables:
+```python
+BACKEND_CORS_ORIGINS: Union[str, List[str]] = "..."
+
+@model_validator(mode='before')
+@classmethod
+def parse_cors_origins(cls, values: Any) -> Any:
+    # Converts comma-separated string to list
+    if isinstance(values, dict):
+        cors_origins = values.get('BACKEND_CORS_ORIGINS')
+        if isinstance(cors_origins, str):
+            values['BACKEND_CORS_ORIGINS'] = [
+                origin.strip() for origin in cors_origins.split(",")
+            ]
+    return values
+```
+
+**Why this is needed:**
+- Pydantic Settings v2 auto-parses `List[str]` as JSON from env vars
+- Environment variables like `https://a.com,https://b.com` fail JSON parsing
+- Using `Union[str, List[str]]` prevents automatic JSON parsing
+- `model_validator(mode='before')` manually converts string → list
+- Works with both comma-separated strings (env vars) and lists (defaults)
 
 ## Deployment
 
@@ -174,6 +307,7 @@ app.include_router(app3.router, prefix=settings.API_V1_STR)
 
 4. Set environment variables in Netlify:
    - `NEXT_PUBLIC_API_URL`: Your production backend URL
+   - `NEXT_PUBLIC_API_KEY`: Your API key from the backend
 
 5. Configure custom domain in Netlify:
    - Add `apps.darshjoshi.com` as a custom domain
@@ -197,7 +331,8 @@ app.include_router(app3.router, prefix=settings.API_V1_STR)
    - `ENVIRONMENT`: production
    - `DEBUG`: false
    - `SECRET_KEY`: Generate a secure key
-   - `BACKEND_CORS_ORIGINS`: https://apps.darshjoshi.com
+   - `API_KEY`: Generate a secure API key (e.g., using `openssl rand -hex 32`)
+   - `BACKEND_CORS_ORIGINS`: `https://apps.darshjoshi.com`
 
 6. Deploy and note your backend URL
 
@@ -218,67 +353,9 @@ railway init
 railway up
 ```
 
-4. Set environment variables in Railway dashboard
+4. Set environment variables in Railway dashboard (similar to Render)
 
 5. Railway will automatically detect the `Procfile`
-
-## Environment Variables
-
-### Frontend (.env.local)
-```env
-NEXT_PUBLIC_API_URL=http://localhost:8000/api
-```
-
-### Frontend (.env.production)
-```env
-NEXT_PUBLIC_API_URL=https://your-backend-url.onrender.com/api
-```
-
-### Backend (.env)
-```env
-API_V1_STR=/api
-PROJECT_NAME=Apps Dashboard API
-ENVIRONMENT=development
-DEBUG=True
-BACKEND_CORS_ORIGINS=http://localhost:3000,https://apps.darshjoshi.com
-SECRET_KEY=your-secret-key-here
-```
-
-## API Documentation
-
-Once the backend is running, visit:
-- Swagger UI: http://localhost:8000/api/docs
-- ReDoc: http://localhost:8000/api/redoc
-
-## Project Features
-
-- **Modular Architecture**: Each app is isolated in its own route and directory
-- **Shared Components**: Common UI components and utilities
-- **Type Safety**: Full TypeScript support in frontend
-- **API Integration**: Axios-based API client with interceptors
-- **CORS Configured**: Proper CORS setup for development and production
-- **Environment-Based Config**: Different settings for dev and prod
-- **Auto Documentation**: FastAPI generates interactive API docs
-- **Hot Reload**: Both frontend and backend support hot reloading
-
-## Database Integration (Optional)
-
-To add database support:
-
-1. Uncomment database dependencies in `requirements.txt`
-
-2. Install the driver:
-```bash
-pip install psycopg2-binary  # For PostgreSQL
-# or
-pip install pymongo  # For MongoDB
-```
-
-3. Update `app/config.py` with database URL
-
-4. Create models in `app/models/`
-
-5. Create database connection logic in a new `app/database.py`
 
 ## Contributing
 

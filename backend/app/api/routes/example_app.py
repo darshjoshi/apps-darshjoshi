@@ -9,12 +9,12 @@ router = APIRouter(
 
 
 @router.get("/data")
-async def get_app1_data() -> Dict[str, Any]:
+async def get_example_app_data() -> Dict[str, Any]:
     """
-    Get data for App 1
+    Get data for Example App
     """
     return {
-        "message": "Hello from App 1 API",
+        "message": "Hello from Example App API",
         "data": {
             "id": 1,
             "name": "Sample Data",
@@ -24,9 +24,9 @@ async def get_app1_data() -> Dict[str, Any]:
 
 
 @router.post("/data")
-async def create_app1_data(data: Dict[str, Any]) -> Dict[str, Any]:
+async def create_example_app_data(data: Dict[str, Any]) -> Dict[str, Any]:
     """
-    Create data for App 1
+    Create data for Example App
     """
     return {
         "message": "Data created successfully",
@@ -35,8 +35,8 @@ async def create_app1_data(data: Dict[str, Any]) -> Dict[str, Any]:
 
 
 @router.get("/health")
-async def app1_health() -> Dict[str, str]:
+async def example_app_health() -> Dict[str, str]:
     """
-    Health check for App 1
+    Health check for Example App
     """
-    return {"status": "healthy", "app": "app1"}
+    return {"status": "healthy", "app": "example-app"}
