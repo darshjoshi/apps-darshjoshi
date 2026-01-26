@@ -3,8 +3,9 @@
 import { useState } from 'react';
 import { exampleAppAPI } from '@/lib/api';
 import Link from 'next/link';
-import { ArrowLeft, Box, Zap, AlertCircle, CheckCircle2, Linkedin, Github, X } from 'lucide-react';
+import { ArrowLeft, Zap, AlertCircle, CheckCircle2, Linkedin, Github, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Logo } from '@/components/ui/logo';
 
 export default function ExampleApp() {
   const [data, setData] = useState<any>(null);
@@ -38,9 +39,7 @@ export default function ExampleApp() {
           </Link>
 
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-black flex items-center justify-center">
-              <Box className="w-6 h-6 text-white" />
-            </div>
+            <Logo size={40} />
             <span className="text-xl font-bold tracking-tight">EXAMPLE APP</span>
           </div>
 

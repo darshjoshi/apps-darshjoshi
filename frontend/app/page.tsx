@@ -1,5 +1,6 @@
 import Link from 'next/link';
-import { ArrowRight, Box, Linkedin, Github, X } from 'lucide-react';
+import { ArrowRight, Linkedin, Github, X } from 'lucide-react';
+import { Logo } from '@/components/ui/logo';
 
 interface App {
   id: string;
@@ -26,9 +27,7 @@ export default function Home() {
       <header className="border-b-2 border-black">
         <div className="max-w-7xl mx-auto px-6 py-6 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-black flex items-center justify-center glow-on-hover">
-              <Box className="w-6 h-6 text-white" />
-            </div>
+            <Logo size={40} className="glow-on-hover" />
             <span className="text-xl font-bold tracking-tight">MINI PRODUCT SHOWCASE</span>
           </div>
           <a
