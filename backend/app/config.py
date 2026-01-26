@@ -1,13 +1,6 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from pydantic import BeforeValidator
-from typing import List, Union, Annotated
-
-
-def parse_cors_origins(v: Union[str, List[str]]) -> List[str]:
-    """Parse CORS origins from comma-separated string or list"""
-    if isinstance(v, str):
-        return [origin.strip() for origin in v.split(",")]
-    return v
+from pydantic import model_validator
+from typing import List, Union, Any
 
 
 class Settings(BaseSettings):
@@ -15,15 +8,20 @@ class Settings(BaseSettings):
     API_V1_STR: str = "/api"
     PROJECT_NAME: str = "Apps Dashboard API"
 
-    # CORS Configuration
-    BACKEND_CORS_ORIGINS: Annotated[
-        List[str],
-        BeforeValidator(parse_cors_origins)
-    ] = [
-        "http://localhost:3000",
-        "http://localhost:8000",
-        "https://apps.darshjoshi.com",
-    ]
+    # CORS Configuration - accepts both string and list
+    BACKEND_CORS_ORIGINS: Union[str, List[str]] = "http://localhost:3000,http://localhost:8000,https://apps.darshjoshi.com"
+
+    @model_validator(mode='before')
+    @classmethod
+    def parse_cors_origins(cls, values: Any) -> Any:
+        """Parse CORS origins from comma-separated string to list"""
+        if isinstance(values, dict):
+            cors_origins = values.get('BACKEND_CORS_ORIGINS')
+            if isinstance(cors_origins, str):
+                values['BACKEND_CORS_ORIGINS'] = [
+                    origin.strip() for origin in cors_origins.split(",")
+                ]
+        return values
 
     # Database Configuration (uncomment and configure as needed)
     # DATABASE_URL: str = "postgresql://user:password@localhost/dbname"
