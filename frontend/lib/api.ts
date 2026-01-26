@@ -51,12 +51,7 @@ api.interceptors.response.use(
 export default api;
 
 // Example API functions for different apps
-export const app1API = {
-  getData: () => api.get('/api/app1/data'),
-  postData: (data: any) => api.post('/api/app1/data', data),
-};
-
-export const app2API = {
-  getData: () => api.get('/api/app2/data'),
-  postData: (data: any) => api.post('/api/app2/data', data),
+export const exampleAppAPI = {
+  getData: () => api.get('/api/example-app/data'),
+  postData: (data: any) => api.post('/api/example-app/data', data),
 };

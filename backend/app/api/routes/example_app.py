@@ -3,9 +3,8 @@ from typing import Dict, Any
 from app.dependencies import verify_api_key
 
 router = APIRouter(
-    prefix="/app1",
-    tags=["app1"],
-    dependencies=[Depends(verify_api_key)]
+    prefix="/example-app",
+    tags=["example-app"]
 )
 
 

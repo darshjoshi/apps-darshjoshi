@@ -10,18 +10,11 @@ interface App {
 
 const apps: App[] = [
   {
-    id: 'app1',
-    name: 'App 1',
-    description: 'Your first application with backend integration',
-    href: '/app1',
+    id: 'example-app',
+    name: 'Example App',
+    description: 'A template application demonstrating backend integration',
+    href: '/example-app',
     color: 'from-blue-500 to-indigo-600',
-  },
-  {
-    id: 'app2',
-    name: 'App 2',
-    description: 'Your second application with backend integration',
-    href: '/app2',
-    color: 'from-purple-500 to-pink-600',
   },
 ];
 
