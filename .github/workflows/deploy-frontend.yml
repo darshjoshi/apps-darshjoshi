@@ -22,7 +22,7 @@ on:
       NEXT_PUBLIC_API_URL:
         required: true
       NEXT_PUBLIC_API_KEY:
-        required: true
+        required: false
       NETLIFY_AUTH_TOKEN:
         required: true
       NETLIFY_SITE_ID:
