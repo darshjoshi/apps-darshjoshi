@@ -12,6 +12,83 @@ from typing import Dict, Any
 client = OpenAI(api_key=settings.OPENAI_API_KEY) if hasattr(settings, 'OPENAI_API_KEY') and settings.OPENAI_API_KEY else None
 
 
+async def generate_recommendations(
+    parsing_results: Dict[str, Any],
+    ats_system: str,
+    resume_text: str,
+    job_description: str
+) -> Dict[str, Any]:
+    """
+    Generate human-readable recommendations based on REAL parsing results
+
+    OpenAI's role: Turn parsing data into actionable advice
+    NOT: Do the parsing itself
+
+    Args:
+        parsing_results: Results from real ATS parser (Workday/Greenhouse/Ashby)
+        ats_system: Which ATS was used
+        resume_text: Original resume text (for context)
+        job_description: Job description (for context)
+
+    Returns:
+        Dictionary with recommendations and tips
+    """
+    if not client:
+        raise ValueError("OpenAI API key not configured")
+
+    # Create focused prompt for recommendations only
+    prompt = f"""
+You are a professional resume coach specializing in {ats_system.upper()} ATS optimization.
+
+An {ats_system.upper()} parsing engine has analyzed a resume. Here are the ACTUAL parsing results:
+
+**Parsing Data:**
+- Keyword Match Rate: {parsing_results.get('keyword_match_rate', 0)}%
+- Matched Keywords: {', '.join(parsing_results.get('matched_keywords', [])[:10])}
+- Missing Keywords: {', '.join(parsing_results.get('missing_keywords', [])[:10])}
+- Formatting Issues: {', '.join(parsing_results.get('formatting_issues', []))}
+- Failed Sections: {', '.join(parsing_results.get('failed_sections', []))}
+
+Based on these REAL parsing results, generate:
+
+1. **Recommendations**: Specific, actionable fixes prioritized by impact
+2. **{ats_system.upper()} Tips**: System-specific optimization advice
+
+Return JSON:
+{{
+  "recommendations": [
+    {{
+      "priority": "high|medium|low",
+      "category": "formatting|keywords|structure",
+      "issue": "what the parser found",
+      "suggestion": "how to fix it"
+    }}
+  ],
+  "ats_specific_tips": ["tip1", "tip2", ...]
+}}
+
+Focus on the ACTUAL issues found by the parser. Be specific and actionable.
+"""
+
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": "You are a resume optimization expert. Generate recommendations based on actual ATS parsing data."},
+                {"role": "user", "content": prompt}
+            ],
+            response_format={"type": "json_object"},
+            temperature=0.7,
+            max_tokens=1500
+        )
+
+        recommendations = json.loads(response.choices[0].message.content)
+        return recommendations
+
+    except Exception as e:
+        raise Exception(f"OpenAI recommendation generation error: {str(e)}")
+
+
 async def analyze_resume_with_openai(
     resume_text: str,
     job_description: str,

@@ -12,13 +12,6 @@ interface App {
 
 const apps: App[] = [
   {
-    id: 'example-app',
-    name: 'Example App',
-    description: 'A template application demonstrating backend integration with a clean structure.',
-    href: '/example-app',
-    status: 'active',
-  },
-  {
     id: 'ats-boss',
     name: 'ATS Boss',
     description: 'Beat the ATS robots. Analyze and optimize your resume for Workday, Greenhouse, Lever, and Ashby systems.',
