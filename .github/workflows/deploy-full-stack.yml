@@ -22,7 +22,11 @@ jobs:
     uses: ./.github/workflows/deploy-backend.yml
     with:
       clear_cache: ${{ inputs.clear_cache }}
-    secrets: inherit
+    secrets:
+      NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
+      NEXT_PUBLIC_API_KEY: ${{ secrets.NEXT_PUBLIC_API_KEY }}
+      NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+      NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
 
   deploy-frontend:
     uses: ./.github/workflows/deploy-frontend.yml
