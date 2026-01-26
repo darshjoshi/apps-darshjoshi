@@ -290,6 +290,53 @@ Update `backend/render.yaml` if you change frontend domain.
 ### Alternative: Railway
 Backend includes `Procfile` for Railway/Heroku deployment if needed.
 
+## GitHub Actions Deployment
+
+The repository includes GitHub Actions workflows for manual deployment of both frontend and backend services.
+
+### Workflows Location
+- `.github/workflows/deploy-frontend.yml` - Netlify frontend deployment
+- `.github/workflows/deploy-backend.yml` - Render backend deployment
+- `.github/workflows/README.md` - Detailed setup instructions
+
+### Frontend Deployment Workflow
+**Manual trigger via GitHub Actions UI:**
+- Builds Next.js with production environment variables
+- Deploys to Netlify (production or preview)
+- Requires secrets: `NETLIFY_AUTH_TOKEN`, `NETLIFY_SITE_ID`, `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_API_KEY`
+
+**How to trigger:**
+1. Go to GitHub → Actions → "Deploy Frontend to Netlify"
+2. Click "Run workflow"
+3. Select environment (production/preview)
+4. Confirm
+
+### Backend Deployment Workflow
+**Manual trigger via GitHub Actions UI:**
+- Triggers Render deployment via deploy hook
+- Option to clear build cache
+- Requires secret: `RENDER_DEPLOY_HOOK_URL`
+
+**How to trigger:**
+1. Go to GitHub → Actions → "Deploy Backend to Render"
+2. Click "Run workflow"
+3. Toggle "Clear build cache" if needed
+4. Confirm
+
+### Required GitHub Secrets
+Configure in **Settings → Secrets and variables → Actions**:
+
+**Frontend:**
+- `NETLIFY_AUTH_TOKEN` - From Netlify User Settings → Applications → Personal access tokens
+- `NETLIFY_SITE_ID` - From Netlify Site Settings → General → API ID
+- `NEXT_PUBLIC_API_URL` - `https://apis.darshjoshi.com/api`
+- `NEXT_PUBLIC_API_KEY` - Copy from Render environment variables
+
+**Backend:**
+- `RENDER_DEPLOY_HOOK_URL` - From Render Service Settings → Deploy Hook
+
+See `.github/workflows/README.md` for detailed setup instructions.
+
 ## Database Integration (Future)
 
 Database drivers are commented out in `requirements.txt`:
