@@ -1,19 +1,30 @@
 """
-Shared Keyword Extractor
-Extracts meaningful keywords from job descriptions
-Used by all ATS parsers for consistency
+LLM-Based Keyword Extractor
+Extracts meaningful keywords from job descriptions using OpenAI GPT-4o-mini
+Falls back to rule-based extraction if LLM fails
 """
 import re
-from typing import List, Set
+import json
+import logging
+from typing import List, Set, Dict, Any
+from openai import OpenAI
+from app.config import settings
+
+# Configure logger
+logger = logging.getLogger(__name__)
+
+# Initialize OpenAI client (reuse from config)
+client = OpenAI(api_key=settings.OPENAI_API_KEY) if hasattr(settings, 'OPENAI_API_KEY') and settings.OPENAI_API_KEY else None
 
 
 class KeywordExtractor:
     """
     Extract meaningful keywords from job descriptions
-    Focuses on: skills, technologies, tools, certifications, degrees
+    Primary: LLM-based extraction using GPT-4o-mini
+    Fallback: Rule-based extraction with regex patterns
     """
 
-    # Common skill categories
+    # Common skill categories (used for fallback)
     TECH_SKILLS = {
         'python', 'java', 'javascript', 'typescript', 'c++', 'c#', 'ruby', 'php', 'swift', 'kotlin',
         'react', 'angular', 'vue', 'node', 'express', 'django', 'flask', 'spring', 'asp.net',
@@ -26,7 +37,7 @@ class KeywordExtractor:
         'agile', 'scrum', 'kanban', 'waterfall'
     }
 
-    # Stop words to ignore
+    # Stop words to ignore (used for fallback)
     STOP_WORDS = {
         'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for',
         'of', 'with', 'by', 'from', 'as', 'is', 'was', 'are', 'were', 'be',
@@ -39,10 +50,101 @@ class KeywordExtractor:
         're', 'looking', 'required', 'qualifications', 'responsibilities'
     }
 
+    async def extract_keywords_llm(self, job_description: str) -> List[str]:
+        """
+        Extract keywords using OpenAI GPT-4o-mini
+        
+        Returns:
+            List of keywords extracted from the job description
+        """
+        if not client:
+            logger.warning("[KEYWORD_EXTRACTOR] OpenAI client not configured, using fallback extraction")
+            return self.extract_keywords_fallback(job_description)
+        
+        logger.info("[KEYWORD_EXTRACTOR] Starting LLM-based keyword extraction")
+        logger.debug(f"[KEYWORD_EXTRACTOR] Job description length: {len(job_description)} chars")
+        
+        prompt = f"""Analyze this job description and extract ALL important keywords that a resume should contain to pass ATS screening.
+
+Job Description:
+{job_description}
+
+Extract and return a JSON object with the following categories:
+{{
+    "technical_skills": ["list of programming languages, frameworks, databases, tools, technologies"],
+    "soft_skills": ["list of soft skills like communication, leadership, teamwork"],
+    "certifications": ["list of certifications like AWS, PMP, CISSP, CPA"],
+    "experience_requirements": ["list like '5+ years Python', '3 years project management'"],
+    "industry_terms": ["list of domain-specific terms, methodologies, processes"],
+    "tools_platforms": ["list of specific tools, platforms, software mentioned"]
+}}
+
+Rules:
+1. Extract EXACT terms as they appear in the job description
+2. Include acronyms AND full names if both are important (e.g., "PMP" and "Project Management Professional")
+3. Include version numbers if specified (e.g., "Python 3", "React 18")
+4. Be comprehensive - include all matchable keywords
+5. Don't include generic words like "experience" or "skills" alone
+"""
+
+        try:
+            logger.info("[KEYWORD_EXTRACTOR] Calling OpenAI GPT-4o-mini for keyword extraction...")
+            response = client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[
+                    {
+                        "role": "system", 
+                        "content": "You are an expert ATS keyword extractor. Extract all important keywords from job descriptions that resumes should match. Be thorough and precise."
+                    },
+                    {"role": "user", "content": prompt}
+                ],
+                response_format={"type": "json_object"},
+                temperature=0.3,  # Lower temperature for more consistent extraction
+                max_tokens=1000
+            )
+            logger.info("[KEYWORD_EXTRACTOR] OpenAI response received successfully")
+
+            result = json.loads(response.choices[0].message.content)
+            logger.debug(f"[KEYWORD_EXTRACTOR] Parsed response categories: {list(result.keys())}")
+            
+            # Flatten all categories into a single list of unique keywords
+            all_keywords = []
+            for category in ['technical_skills', 'soft_skills', 'certifications', 
+                           'experience_requirements', 'industry_terms', 'tools_platforms']:
+                keywords = result.get(category, [])
+                if isinstance(keywords, list):
+                    all_keywords.extend(keywords)
+            
+            # Remove duplicates while preserving order
+            seen = set()
+            unique_keywords = []
+            for kw in all_keywords:
+                kw_lower = kw.lower().strip()
+                if kw_lower not in seen and len(kw.strip()) > 1:
+                    seen.add(kw_lower)
+                    unique_keywords.append(kw.strip())
+            
+            logger.info(f"[KEYWORD_EXTRACTOR] Extracted {len(unique_keywords)} unique keywords via LLM")
+            logger.debug(f"[KEYWORD_EXTRACTOR] Keywords: {unique_keywords[:10]}..." if len(unique_keywords) > 10 else f"[KEYWORD_EXTRACTOR] Keywords: {unique_keywords}")
+            return unique_keywords[:50]  # Limit to 50 keywords
+
+        except Exception as e:
+            logger.error(f"[KEYWORD_EXTRACTOR] LLM extraction failed: {str(e)}")
+            logger.info("[KEYWORD_EXTRACTOR] Falling back to rule-based extraction")
+            return self.extract_keywords_fallback(job_description)
+
     def extract_keywords(self, job_description: str) -> List[str]:
         """
-        Extract meaningful keywords from job description
+        Synchronous wrapper - uses fallback for backward compatibility
+        For async extraction, use extract_keywords_llm() directly
+        """
+        return self.extract_keywords_fallback(job_description)
 
+    def extract_keywords_fallback(self, job_description: str) -> List[str]:
+        """
+        Fallback: Extract keywords using rule-based patterns
+        Used when LLM is unavailable or fails
+        
         Returns:
             List of actual skills/keywords (not sentence fragments)
         """

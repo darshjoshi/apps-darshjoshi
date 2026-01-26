@@ -1,10 +1,20 @@
 """
 Ashby ATS Parser
-Mimics Ashby's AI-powered matching with focus on quantifiable achievements
+Mimics Ashby's AI-powered matching with criteria-based evaluation
 """
 import re
+import json
+import logging
 from typing import Dict, List, Any, Tuple
+from openai import OpenAI
+from app.config import settings
 from .keyword_extractor import keyword_extractor
+
+# Configure logger
+logger = logging.getLogger(__name__)
+
+# Initialize OpenAI client
+client = OpenAI(api_key=settings.OPENAI_API_KEY) if hasattr(settings, 'OPENAI_API_KEY') and settings.OPENAI_API_KEY else None
 
 
 class AshbyParser:
@@ -17,7 +27,7 @@ class AshbyParser:
     - Career progression analysis
     """
 
-    def parse_resume(self, resume_text: str, job_description: str) -> Dict[str, Any]:
+    async def parse_resume(self, resume_text: str, job_description: str) -> Dict[str, Any]:
         """
         Parse resume using Ashby's AI-powered logic
         """
@@ -43,11 +53,12 @@ class AshbyParser:
         # 3. Check formatting (Ashby is very forgiving)
         results["formatting_issues"] = self._check_formatting(resume_text)
 
-        # 4. Extract keywords with context
-        jd_keywords = self._extract_contextual_keywords(job_description)
+        # 4. Extract keywords with context (LLM-based)
+        jd_keywords = await self._extract_contextual_keywords(job_description)
 
         # 5. AI-style semantic matching
-        keyword_analysis = self._ai_keyword_match(resume_text, jd_keywords)
+        logger.info("[ASHBY] Performing AI-powered semantic matching...")
+        keyword_analysis = await self._ai_keyword_match(resume_text, jd_keywords)
         results["matched_keywords"] = keyword_analysis["matched"]
         results["missing_keywords"] = keyword_analysis["missing"]
 
@@ -193,65 +204,96 @@ class AshbyParser:
 
         return issues
 
-    def _extract_contextual_keywords(self, job_description: str) -> List[str]:
+    async def _extract_contextual_keywords(self, job_description: str) -> List[str]:
         """
-        Extract keywords with understanding of context and importance using shared extractor
+        Extract keywords with understanding of context and importance using LLM
         """
-        return keyword_extractor.extract_keywords(job_description)
+        return await keyword_extractor.extract_keywords_llm(job_description)
 
-    def _ai_keyword_match(self, resume_text: str, keywords: List[str]) -> Dict[str, List[str]]:
+    async def _ai_keyword_match(self, resume_text: str, keywords: List[str]) -> Dict[str, List[str]]:
         """
-        AI-style matching - understands context, synonyms, related concepts
+        Ashby uses AI-first matching with focus on:
+        - Quantifiable achievements
+        - Context understanding
+        - Skills inference
         """
-        matched = []
-        missing = []
+        if not client or not keywords:
+            logger.warning("[ASHBY] OpenAI not available, falling back to basic matching")
+            return self._basic_match(resume_text, keywords)
+        
+        # Get achievements for context
+        achievements = self._extract_achievements(resume_text)
+        progression = self._analyze_career_progression(resume_text)
+        
+        prompt = f"""Analyze this resume with Ashby's AI-powered approach.
 
+RESUME TEXT:
+{resume_text[:4000]}
+
+QUANTIFIABLE ACHIEVEMENTS FOUND:
+{json.dumps(achievements[:10])}
+
+CAREER PROGRESSION:
+{json.dumps(progression)}
+
+JOB REQUIREMENTS/KEYWORDS:
+{json.dumps(keywords)}
+
+Ashby's AI evaluation approach:
+1. Focus on DEMONSTRATED skills with evidence
+2. Value quantifiable achievements (%, $, metrics)
+3. Consider career progression and growth
+4. Infer related skills (e.g., "led team" implies leadership)
+
+For each requirement, determine if the resume provides EVIDENCE of this skill.
+
+Return JSON:
+{{
+    "matched": ["requirements with evidence in resume"],
+    "missing": ["requirements without clear evidence"],
+    "analysis": "brief reasoning focusing on achievements"
+}}
+
+Be thorough - look for demonstrated impact, not just keyword presence."""
+
+        try:
+            logger.info(f"[ASHBY] Calling OpenAI for AI-powered matching of {len(keywords)} requirements...")
+            response = client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[
+                    {
+                        "role": "system",
+                        "content": "You are Ashby's AI analyzer. Focus on quantifiable achievements and demonstrated skills. Infer related skills when there's clear evidence."
+                    },
+                    {"role": "user", "content": prompt}
+                ],
+                response_format={"type": "json_object"},
+                temperature=0.3,
+                max_tokens=1500
+            )
+            
+            result = json.loads(response.choices[0].message.content)
+            matched = result.get("matched", [])
+            missing = result.get("missing", [])
+            
+            logger.info(f"[ASHBY] AI matching complete: {len(matched)} matched, {len(missing)} missing")
+            
+            return {"matched": matched, "missing": missing}
+            
+        except Exception as e:
+            logger.error(f"[ASHBY] AI matching failed: {str(e)}")
+            return self._basic_match(resume_text, keywords)
+    
+    def _basic_match(self, resume_text: str, keywords: List[str]) -> Dict[str, List[str]]:
+        """Fallback basic matching"""
+        matched, missing = [], []
         resume_lower = resume_text.lower()
-
-        # Ashby's AI can understand related concepts
-        concept_mapping = {
-            "python": ["python", "py", "django", "flask", "fastapi"],
-            "javascript": ["javascript", "js", "typescript", "ts", "node", "react", "vue", "angular"],
-            "leadership": ["lead", "led", "managed", "supervised", "directed", "mentored"],
-            "aws": ["aws", "amazon web services", "ec2", "s3", "lambda"],
-            "docker": ["docker", "containerization", "kubernetes", "k8s"],
-            "sql": ["sql", "mysql", "postgresql", "database"],
-        }
-
-        for keyword in keywords:
-            keyword_lower = keyword.lower()
-
-            # Direct match
-            if keyword_lower in resume_lower:
-                matched.append(keyword)
-                continue
-
-            # Check concept mapping
-            found = False
-            for concept, related_terms in concept_mapping.items():
-                if concept in keyword_lower:
-                    if any(term in resume_lower for term in related_terms):
-                        matched.append(keyword)
-                        found = True
-                        break
-
-            if not found:
-                # Check for partial matches with context
-                words = keyword_lower.split()
-                if len(words) > 1:
-                    # Multi-word keyword - check if most words appear
-                    matches = sum(1 for word in words if len(word) > 3 and word in resume_lower)
-                    if matches >= len(words) * 0.6:  # 60% of words match
-                        matched.append(keyword)
-                    else:
-                        missing.append(keyword)
-                else:
-                    missing.append(keyword)
-
-        return {
-            "matched": matched,
-            "missing": missing
-        }
+        for kw in keywords:
+            if kw.lower() in resume_lower:
+                matched.append(kw)
+            else:
+                missing.append(kw)
+        return {"matched": matched, "missing": missing}
 
     def _detect_sections(self, text: str) -> List[str]:
         """

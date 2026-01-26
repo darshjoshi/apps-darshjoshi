@@ -1,37 +1,67 @@
 """
 Workday ATS Parser
-Mimics Workday's strict parsing logic
+Mimics Workday's parsing logic with NLP semantic understanding
 """
 import re
+import json
+import logging
 from typing import Dict, List, Any
+from openai import OpenAI
+from app.config import settings
 from .keyword_extractor import keyword_extractor
+
+# Configure logger
+logger = logging.getLogger(__name__)
+
+# Initialize OpenAI client
+client = OpenAI(api_key=settings.OPENAI_API_KEY) if hasattr(settings, 'OPENAI_API_KEY') and settings.OPENAI_API_KEY else None
 
 
 class WorkdayParser:
     """
     Replicates Workday's resume parsing behavior:
-    - EXACT keyword matching only (no synonyms)
-    - Standard section headings only
+    - NLP semantic keyword matching (understands synonyms)
+    - Standard section headings preferred
     - Single-column layout detection
-    - Strict formatting rules
+    - Structured data extraction
     """
 
-    # Workday only recognizes these EXACT headings
+    # Workday recognizes these standard headings (expanded list)
     STANDARD_HEADINGS = [
+        # Experience sections
         "work experience",
         "professional experience",
         "employment history",
+        "experience",
+        "work history",
+        "career history",
+        "relevant experience",
+        # Skills sections  
         "skills",
         "technical skills",
         "core competencies",
+        "competencies",
+        "areas of expertise",
+        "key skills",
+        # Education sections
         "education",
         "academic background",
+        "educational background",
+        # Other sections
         "contact information",
+        "contact",
         "summary",
-        "professional summary"
+        "professional summary",
+        "profile",
+        "objective",
+        "certifications",
+        "certificates",
+        "projects",
+        "achievements",
+        "awards"
     ]
 
-    def parse_resume(self, resume_text: str, job_description: str) -> Dict[str, Any]:
+    async def parse_resume(self, resume_text: str, job_description: str) -> Dict[str, Any]:
         """
         Parse resume using Workday's strict logic
 
@@ -57,11 +87,12 @@ class WorkdayParser:
         # 2. Check formatting issues
         results["formatting_issues"] = self._check_formatting(resume_text)
 
-        # 3. Extract keywords from job description
-        jd_keywords = self._extract_keywords(job_description)
+        # 3. Extract keywords from job description (LLM-based)
+        jd_keywords = await self._extract_keywords(job_description)
 
-        # 4. Exact keyword matching (Workday does NOT use synonyms)
-        keyword_analysis = self._exact_keyword_match(resume_text, jd_keywords)
+        # 4. Semantic keyword matching (Workday uses NLP understanding)
+        logger.info("[WORKDAY] Performing semantic keyword matching...")
+        keyword_analysis = await self._semantic_keyword_match(resume_text, jd_keywords)
         results["matched_keywords"] = keyword_analysis["matched"]
         results["missing_keywords"] = keyword_analysis["missing"]
 
@@ -148,33 +179,94 @@ class WorkdayParser:
 
         return issues
 
-    def _extract_keywords(self, job_description: str) -> List[str]:
+    async def _extract_keywords(self, job_description: str) -> List[str]:
         """
-        Extract important keywords from job description using shared extractor
+        Extract important keywords from job description using LLM
         Focuses on: skills, technologies, tools, certifications, requirements
         """
-        return keyword_extractor.extract_keywords(job_description)
+        return await keyword_extractor.extract_keywords_llm(job_description)
 
-    def _exact_keyword_match(self, resume_text: str, keywords: List[str]) -> Dict[str, List[str]]:
+    async def _semantic_keyword_match(self, resume_text: str, keywords: List[str]) -> Dict[str, List[str]]:
         """
-        Workday uses EXACT matching - "SQL" != "database" != "SQL Server"
+        Workday uses NLP semantic understanding - 'managed team' ≈ 'led team'
+        Uses OpenAI to semantically match keywords against resume
+        """
+        if not client or not keywords:
+            logger.warning("[WORKDAY] OpenAI not available, falling back to exact matching")
+            return self._exact_keyword_match_fallback(resume_text, keywords)
+        
+        # Batch keywords into groups to reduce API calls
+        prompt = f"""Analyze this resume and determine which job requirements are met.
+
+RESUME:
+{resume_text[:4000]}  # Limit to avoid token limits
+
+JOB REQUIREMENTS/KEYWORDS:
+{json.dumps(keywords)}
+
+For each keyword/requirement, determine if the resume demonstrates this skill or experience.
+Use semantic understanding - for example:
+- "managed team" matches "led a team of 5 engineers"
+- "SQL" matches "PostgreSQL database experience"
+- "communication skills" matches "presented to stakeholders"
+
+Return a JSON object:
+{{
+    "matched": ["list of keywords that ARE demonstrated in the resume"],
+    "missing": ["list of keywords that are NOT demonstrated in the resume"],
+    "analysis": "brief explanation of your matching logic"
+}}
+
+Be rigorous but fair - match based on demonstrated skills, not just exact words."""
+
+        try:
+            logger.info(f"[WORKDAY] Calling OpenAI for semantic matching of {len(keywords)} keywords...")
+            response = client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[
+                    {
+                        "role": "system",
+                        "content": "You are an expert ATS analyzer for Workday. Match job requirements to resume content using semantic understanding. Be thorough but fair."
+                    },
+                    {"role": "user", "content": prompt}
+                ],
+                response_format={"type": "json_object"},
+                temperature=0.3,
+                max_tokens=1500
+            )
+            
+            result = json.loads(response.choices[0].message.content)
+            matched = result.get("matched", [])
+            missing = result.get("missing", [])
+            analysis = result.get("analysis", "")
+            
+            logger.info(f"[WORKDAY] Semantic matching complete: {len(matched)} matched, {len(missing)} missing")
+            logger.debug(f"[WORKDAY] Analysis: {analysis}")
+            
+            return {
+                "matched": matched,
+                "missing": missing
+            }
+            
+        except Exception as e:
+            logger.error(f"[WORKDAY] Semantic matching failed: {str(e)}, using fallback")
+            return self._exact_keyword_match_fallback(resume_text, keywords)
+    
+    def _exact_keyword_match_fallback(self, resume_text: str, keywords: List[str]) -> Dict[str, List[str]]:
+        """
+        Fallback exact matching when OpenAI is unavailable
         """
         matched = []
         missing = []
-
         resume_lower = resume_text.lower()
-
+        
         for keyword in keywords:
-            # Exact match only (case-insensitive but exact)
             if keyword.lower() in resume_lower:
                 matched.append(keyword)
             else:
                 missing.append(keyword)
-
-        return {
-            "matched": matched,
-            "missing": missing
-        }
+        
+        return {"matched": matched, "missing": missing}
 
     def _calculate_keyword_rate(self, matched: List[str], all_keywords: List[str]) -> int:
         """

@@ -3,9 +3,19 @@ Greenhouse ATS Parser
 Mimics Greenhouse's structured data extraction with semantic understanding
 """
 import re
+import json
+import logging
 from typing import Dict, List, Any, Optional
 from datetime import datetime
+from openai import OpenAI
+from app.config import settings
 from .keyword_extractor import keyword_extractor
+
+# Configure logger
+logger = logging.getLogger(__name__)
+
+# Initialize OpenAI client
+client = OpenAI(api_key=settings.OPENAI_API_KEY) if hasattr(settings, 'OPENAI_API_KEY') and settings.OPENAI_API_KEY else None
 
 
 class GreenhouseParser:
@@ -34,7 +44,7 @@ class GreenhouseParser:
         "collaborated": ["worked with", "partnered", "coordinated with", "teamed up"],
     }
 
-    def parse_resume(self, resume_text: str, job_description: str) -> Dict[str, Any]:
+    async def parse_resume(self, resume_text: str, job_description: str) -> Dict[str, Any]:
         """
         Parse resume using Greenhouse's structured extraction logic
         """
@@ -57,11 +67,12 @@ class GreenhouseParser:
         # 2. Check formatting (Greenhouse is more forgiving than Workday)
         results["formatting_issues"] = self._check_formatting(resume_text)
 
-        # 3. Extract keywords from JD
-        jd_keywords = self._extract_keywords(job_description)
+        # 3. Extract keywords from JD (LLM-based)
+        jd_keywords = await self._extract_keywords(job_description)
 
-        # 4. Semantic keyword matching (Greenhouse accepts synonyms)
-        keyword_analysis = self._semantic_keyword_match(resume_text, jd_keywords)
+        # 4. Semantic keyword matching (Greenhouse uses ML-based matching)
+        logger.info("[GREENHOUSE] Performing semantic keyword matching...")
+        keyword_analysis = await self._semantic_keyword_match(resume_text, jd_keywords)
         results["matched_keywords"] = keyword_analysis["matched"]
         results["missing_keywords"] = keyword_analysis["missing"]
 
@@ -114,28 +125,31 @@ class GreenhouseParser:
         """
         Extract work experience with structure
         Greenhouse looks for: Company, Title, Dates, Achievements
+        More flexible matching to catch various resume formats
         """
         experiences = []
 
-        # Look for company names (usually all caps or title case)
-        company_pattern = r'(?:^|\n)([A-Z][A-Za-z\s&,\.]+(?:Inc|LLC|Corp|Corporation|Ltd|Company)?)\s*(?:\||•|–|-)\s*([^\n]+)'
-        companies = re.findall(company_pattern, text, re.MULTILINE)
-
-        # Look for date ranges
-        date_pattern = r'((?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?\s+\d{4})\s*(?:to|-|–)\s*((?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?\s+\d{4}|Present|Current)'
+        # Look for date ranges (most reliable indicator of work experience)
+        date_pattern = r'((?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\s*\.?\s*\d{4}|\d{4})\s*(?:to|–|-|—)\s*((?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\s*\.?\s*\d{4}|\d{4}|Present|Current|Now)'
         dates = re.findall(date_pattern, text, re.IGNORECASE)
 
-        # Look for job titles
-        title_pattern = r'((?:Senior|Junior|Lead|Principal|Staff|Chief)?\s*(?:Software Engineer|Developer|Manager|Director|Analyst|Designer|Consultant|Architect))'
+        # Look for job titles (expanded list)
+        title_pattern = r'((?:Senior|Junior|Lead|Principal|Staff|Chief|Head|VP|Vice President|Assistant|Associate|Executive|Managing)?\s*(?:Software Engineer|Engineer|Developer|Manager|Director|Analyst|Designer|Consultant|Architect|Specialist|Coordinator|Administrator|Officer|Executive|Intern|Trainee|Associate|Partner|President|Founder|Owner|Scientist|Researcher|Accountant|Attorney|Lawyer|Nurse|Teacher|Professor|Instructor))'
         titles = re.findall(title_pattern, text, re.IGNORECASE)
 
-        # Structure the experience
-        for i in range(min(len(companies), len(dates), len(titles))):
-            experiences.append({
-                "company": companies[i][0].strip() if i < len(companies) else "Unknown",
-                "title": titles[i] if i < len(titles) else "Unknown",
-                "duration": f"{dates[i][0]} - {dates[i][1]}" if i < len(dates) else "Unknown"
-            })
+        # If we found dates, we have work experience
+        if dates:
+            for i, date_pair in enumerate(dates[:5]):  # Limit to 5 experiences
+                exp = {"duration": f"{date_pair[0]} - {date_pair[1]}"}
+                if i < len(titles):
+                    exp["title"] = titles[i].strip()
+                else:
+                    exp["title"] = "Position"
+                experiences.append(exp)
+        elif titles:
+            # No dates but have titles - still count as experience
+            for title in titles[:5]:
+                experiences.append({"title": title.strip(), "duration": "Unknown"})
 
         return experiences
 
@@ -218,57 +232,87 @@ class GreenhouseParser:
 
         return issues
 
-    def _extract_keywords(self, job_description: str) -> List[str]:
+    async def _extract_keywords(self, job_description: str) -> List[str]:
         """
-        Extract keywords from job description using shared extractor
+        Extract keywords from job description using LLM
         """
-        return keyword_extractor.extract_keywords(job_description)
+        return await keyword_extractor.extract_keywords_llm(job_description)
 
-    def _semantic_keyword_match(self, resume_text: str, keywords: List[str]) -> Dict[str, List[str]]:
+    async def _semantic_keyword_match(self, resume_text: str, keywords: List[str]) -> Dict[str, List[str]]:
         """
-        Greenhouse accepts semantic matches (synonyms)
+        Greenhouse uses ML-based semantic matching against structured data
+        Uses OpenAI for semantic understanding
         """
-        matched = []
-        missing = []
+        if not client or not keywords:
+            logger.warning("[GREENHOUSE] OpenAI not available, falling back to basic matching")
+            return self._basic_keyword_match(resume_text, keywords)
+        
+        # Get structured data for context
+        structured = self._extract_structured_data(resume_text)
+        
+        prompt = f"""Analyze this resume and determine which job requirements are met.
 
+RESUME TEXT:
+{resume_text[:4000]}
+
+STRUCTURED DATA EXTRACTED:
+- Work Experience: {json.dumps(structured.get('work_experience', []))}
+- Education: {json.dumps(structured.get('education', []))}
+- Skills: {json.dumps(structured.get('skills', []))}
+
+JOB REQUIREMENTS/KEYWORDS:
+{json.dumps(keywords)}
+
+Match each keyword against BOTH the raw resume text AND the structured data.
+Greenhouse is moderately forgiving with semantic matches.
+
+Return JSON:
+{{
+    "matched": ["keywords demonstrated in the resume"],
+    "missing": ["keywords NOT found in the resume"],
+    "analysis": "brief reasoning"
+}}
+
+Be fair but accurate - match based on demonstrated experience, not just word presence."""
+
+        try:
+            logger.info(f"[GREENHOUSE] Calling OpenAI for semantic matching of {len(keywords)} keywords...")
+            response = client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[
+                    {
+                        "role": "system",
+                        "content": "You are a Greenhouse ATS analyzer. Match job requirements to resume content using semantic understanding and structured data extraction."
+                    },
+                    {"role": "user", "content": prompt}
+                ],
+                response_format={"type": "json_object"},
+                temperature=0.3,
+                max_tokens=1500
+            )
+            
+            result = json.loads(response.choices[0].message.content)
+            matched = result.get("matched", [])
+            missing = result.get("missing", [])
+            
+            logger.info(f"[GREENHOUSE] Semantic matching complete: {len(matched)} matched, {len(missing)} missing")
+            
+            return {"matched": matched, "missing": missing}
+            
+        except Exception as e:
+            logger.error(f"[GREENHOUSE] Semantic matching failed: {str(e)}")
+            return self._basic_keyword_match(resume_text, keywords)
+    
+    def _basic_keyword_match(self, resume_text: str, keywords: List[str]) -> Dict[str, List[str]]:
+        """Fallback basic matching"""
+        matched, missing = [], []
         resume_lower = resume_text.lower()
-
-        for keyword in keywords:
-            keyword_lower = keyword.lower()
-
-            # Check exact match first
-            if keyword_lower in resume_lower:
-                matched.append(keyword)
-                continue
-
-            # Check synonyms
-            found_synonym = False
-            for base_word, synonyms in self.KEYWORD_SYNONYMS.items():
-                if base_word in keyword_lower or keyword_lower in base_word:
-                    # Check if any synonym is in resume
-                    for synonym in synonyms:
-                        if synonym in resume_lower:
-                            matched.append(keyword)
-                            found_synonym = True
-                            break
-                    if found_synonym:
-                        break
-
-            if not found_synonym:
-                # Check partial match (Greenhouse is forgiving)
-                if len(keyword_lower) > 4:
-                    # Accept partial matches for longer keywords
-                    if any(keyword_lower in word or word in keyword_lower for word in resume_lower.split()):
-                        matched.append(keyword)
-                    else:
-                        missing.append(keyword)
-                else:
-                    missing.append(keyword)
-
-        return {
-            "matched": matched,
-            "missing": missing
-        }
+        for kw in keywords:
+            if kw.lower() in resume_lower:
+                matched.append(kw)
+            else:
+                missing.append(kw)
+        return {"matched": matched, "missing": missing}
 
     def _calculate_keyword_rate(self, matched: List[str], all_keywords: List[str]) -> int:
         """
