@@ -1,10 +1,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { app1API } from '@/lib/api';
+import { exampleAppAPI } from '@/lib/api';
 import Link from 'next/link';
 
-export default function App1() {
+export default function ExampleApp() {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -13,7 +13,7 @@ export default function App1() {
     setLoading(true);
     setError(null);
     try {
-      const response = await app1API.getData();
+      const response = await exampleAppAPI.getData();
       setData(response.data);
     } catch (err: any) {
       setError(err.message || 'Failed to fetch data');
@@ -29,11 +29,11 @@ export default function App1() {
           href="/"
           className="inline-block mb-6 text-blue-600 hover:text-blue-800 font-medium"
         >
-          ← Back to Home
+          ← Back to Dashboard
         </Link>
 
         <div className="bg-white rounded-lg shadow-lg p-8">
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">App 1</h1>
+          <h1 className="text-4xl font-bold text-gray-900 mb-4">Example App</h1>
           <p className="text-gray-600 mb-8">
             This is a placeholder for your first application. Connect it to the backend API to get started.
           </p>
