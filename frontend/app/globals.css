@@ -1,26 +1,73 @@
 @import "tailwindcss";
 
 :root {
+  /* Base - Light Mode */
   --background: #ffffff;
-  --foreground: #171717;
+  --foreground: #09090b; /* Zinc 950 */
+
+  /* Primary Brand Color - User Requested #2632D4 */
+  --primary: #2632D4;
+  --primary-foreground: #ffffff;
+
+  /* Secondary - Soft gray for contrast */
+  --secondary: #f4f4f5; /* Zinc 100 */
+  --secondary-foreground: #18181b; /* Zinc 900 */
+
+  /* Muted - For subtle text/bg */
+  --muted: #f4f4f5; /* Zinc 100 */
+  --muted-foreground: #71717a; /* Zinc 500 */
+
+  /* Borders / Input lines */
+  --border: #e4e4e7; /* Zinc 200 */
+  --radius: 0.5rem;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    /* Base - Dark Mode */
+    --background: #09090b; /* Zinc 950 */
+    --foreground: #fafafa; /* Zinc 50 */
+
+    /* Primary - Adjusted slightly for dark mode visibility if needed, keeps brand identity */
+    --primary: #3c46e0; /* Slightly lighter shade of #2632D4 for better contrast on dark */
+    --primary-foreground: #ffffff;
+
+    /* Secondary */
+    --secondary: #27272a; /* Zinc 800 */
+    --secondary-foreground: #fafafa; /* Zinc 50 */
+
+    /* Muted */
+    --muted: #27272a; /* Zinc 800 */
+    --muted-foreground: #a1a1aa; /* Zinc 400 */
+
+    /* Borders */
+    --border: #27272a; /* Zinc 800 */
+  }
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  
+  --radius-sm: calc(var(--radius) - 2px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
 }
 
 body {
-  background: var(--background);
+  background-color: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
