@@ -133,9 +133,12 @@ export default function ATSBoss() {
       {/* Loading State */}
       {loading && (
         <div className="mb-12">
-          <LoadingState message="Analyzing your resume against ATS system..." />
+          <LoadingState message={`Analyzing your resume with ${atsSystem.toUpperCase()} parser...`} />
           <div className="mt-4 text-center text-sm font-mono text-gray-600">
-            This may take 10-15 seconds. Please wait...
+            {atsSystem === 'ashby'
+              ? 'AI-powered analysis may take 20-30 seconds. Please wait...'
+              : 'This may take 10-15 seconds. Please wait...'
+            }
           </div>
         </div>
       )}
