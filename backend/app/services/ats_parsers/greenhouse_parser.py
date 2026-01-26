@@ -5,6 +5,7 @@ Mimics Greenhouse's structured data extraction with semantic understanding
 import re
 from typing import Dict, List, Any, Optional
 from datetime import datetime
+from .keyword_extractor import keyword_extractor
 
 
 class GreenhouseParser:
@@ -219,27 +220,9 @@ class GreenhouseParser:
 
     def _extract_keywords(self, job_description: str) -> List[str]:
         """
-        Extract keywords from job description
+        Extract keywords from job description using shared extractor
         """
-        keywords = []
-
-        # Extract technical terms and skills
-        technical_pattern = r'\b([A-Z][A-Za-z]*(?:[.\+]?[A-Z][A-Za-z]*)*)\b'
-        tech_terms = re.findall(technical_pattern, job_description)
-        keywords.extend([t for t in tech_terms if len(t) > 2 and len(t) < 30])
-
-        # Extract quoted requirements
-        quoted = re.findall(r'"([^"]+)"', job_description)
-        keywords.extend(quoted)
-
-        # Extract from requirement phrases
-        req_pattern = r'(?:required|must have|experience with|proficiency in)[\s:]+([A-Za-z0-9\s,\+\#\-\.]+?)(?:\.|,|;|\n)'
-        requirements = re.findall(req_pattern, job_description, re.IGNORECASE)
-        for req in requirements:
-            items = re.split(r'[,;]', req)
-            keywords.extend([item.strip() for item in items if 3 < len(item.strip()) < 40])
-
-        return list(set(keywords))
+        return keyword_extractor.extract_keywords(job_description)
 
     def _semantic_keyword_match(self, resume_text: str, keywords: List[str]) -> Dict[str, List[str]]:
         """

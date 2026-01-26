@@ -4,6 +4,7 @@ Mimics Workday's strict parsing logic
 """
 import re
 from typing import Dict, List, Any
+from .keyword_extractor import keyword_extractor
 
 
 class WorkdayParser:
@@ -149,38 +150,10 @@ class WorkdayParser:
 
     def _extract_keywords(self, job_description: str) -> List[str]:
         """
-        Extract important keywords from job description
+        Extract important keywords from job description using shared extractor
         Focuses on: skills, technologies, tools, certifications, requirements
         """
-        keywords = []
-
-        # Common patterns for requirements
-        requirement_patterns = [
-            r'(?:required|must have|proficiency in|experience with|knowledge of)[\s:]+([A-Z][A-Za-z0-9\s\+\#\-\.]+)',
-            r'([A-Z][A-Za-z]+(?:\s[A-Z][A-Za-z]+)*)\s*\d*\+?\s*years?',
-            r'(?:including|such as|e\.g\.|like)[\s:]+([A-Z][A-Za-z0-9\s,\+\#\-\.]+)',
-        ]
-
-        for pattern in requirement_patterns:
-            matches = re.findall(pattern, job_description)
-            for match in matches:
-                # Split by commas and clean
-                items = re.split(r'[,;]', match)
-                for item in items:
-                    cleaned = item.strip()
-                    if 3 < len(cleaned) < 50 and not cleaned[0].isdigit():
-                        keywords.append(cleaned)
-
-        # Extract acronyms and technical terms (all caps or mixed case)
-        technical_terms = re.findall(r'\b[A-Z]{2,}(?:[.\+]?[A-Z]*)*\b', job_description)
-        keywords.extend(technical_terms)
-
-        # Extract quoted requirements
-        quoted = re.findall(r'"([^"]+)"', job_description)
-        keywords.extend(quoted)
-
-        # Remove duplicates and return
-        return list(set([k for k in keywords if len(k) > 2]))
+        return keyword_extractor.extract_keywords(job_description)
 
     def _exact_keyword_match(self, resume_text: str, keywords: List[str]) -> Dict[str, List[str]]:
         """

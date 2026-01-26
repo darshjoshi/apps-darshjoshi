@@ -7,7 +7,6 @@ export function ATSSelector({ value, onChange }: ATSSelectorProps) {
   const systems = [
     { id: 'workday', name: 'Workday', desc: 'Exact keyword matching' },
     { id: 'greenhouse', name: 'Greenhouse', desc: 'Semantic understanding' },
-    { id: 'lever', name: 'Lever', desc: 'Advanced NLP & CRM' },
     { id: 'ashby', name: 'Ashby', desc: 'AI-powered matching' },
   ];
 

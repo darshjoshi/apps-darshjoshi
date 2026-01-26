@@ -4,6 +4,7 @@ Mimics Ashby's AI-powered matching with focus on quantifiable achievements
 """
 import re
 from typing import Dict, List, Any, Tuple
+from .keyword_extractor import keyword_extractor
 
 
 class AshbyParser:
@@ -194,31 +195,9 @@ class AshbyParser:
 
     def _extract_contextual_keywords(self, job_description: str) -> List[str]:
         """
-        Extract keywords with understanding of context and importance
+        Extract keywords with understanding of context and importance using shared extractor
         """
-        keywords = []
-
-        # Extract from requirement sections
-        req_sections = re.findall(r'(?:requirements?|qualifications?|must have)[\s:]*\n?((?:[^\n]+\n?)+?)(?:\n\n|requirements|qualifications)', job_description, re.IGNORECASE)
-
-        for section in req_sections:
-            # Extract bullet points or list items
-            items = re.findall(r'(?:^|\n)[\s•\-\*]+([^\n]+)', section)
-            for item in items:
-                # Clean and add
-                cleaned = item.strip()
-                if 10 < len(cleaned) < 100:
-                    keywords.append(cleaned)
-
-        # Extract technical terms
-        tech_terms = re.findall(r'\b([A-Z][A-Za-z]*(?:[.\+/#]?[A-Z0-9][A-Za-z0-9]*)*)\b', job_description)
-        keywords.extend([t for t in tech_terms if 2 < len(t) < 30])
-
-        # Extract quoted or emphasized terms
-        emphasized = re.findall(r'["\'`]([^"\'`]+)["\'`]', job_description)
-        keywords.extend(emphasized)
-
-        return list(set(keywords))[:50]  # Limit to top 50
+        return keyword_extractor.extract_keywords(job_description)
 
     def _ai_keyword_match(self, resume_text: str, keywords: List[str]) -> Dict[str, List[str]]:
         """
