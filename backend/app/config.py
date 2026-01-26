@@ -37,6 +37,9 @@ class Settings(BaseSettings):
     API_KEY: str = ""  # Optional: Set to enable API key authentication
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
 
+    # OpenAI Configuration
+    OPENAI_API_KEY: str = ""  # Required for ATS Boss resume analysis
+
     model_config = SettingsConfigDict(
         env_file=".env",
         case_sensitive=True,

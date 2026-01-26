@@ -1,0 +1,192 @@
+"""
+OpenAI Service for ATS Resume Analysis
+Handles OpenAI API initialization and analysis requests
+"""
+
+from openai import OpenAI
+from app.config import settings
+import json
+from typing import Dict, Any
+
+# Initialize OpenAI client
+client = OpenAI(api_key=settings.OPENAI_API_KEY) if hasattr(settings, 'OPENAI_API_KEY') and settings.OPENAI_API_KEY else None
+
+
+async def analyze_resume_with_openai(
+    resume_text: str,
+    job_description: str,
+    ats_system: str
+) -> Dict[str, Any]:
+    """
+    Analyze resume against job description using OpenAI GPT-4o mini
+
+    Args:
+        resume_text: Extracted text from resume PDF
+        job_description: Job description provided by user
+        ats_system: ATS system to mimic (workday, greenhouse, lever, ashby)
+
+    Returns:
+        Dictionary containing analysis results
+    """
+    if not client:
+        raise ValueError("OpenAI API key not configured")
+
+    # Get ATS-specific system prompt
+    system_prompt = get_ats_system_prompt(ats_system)
+
+    # Create user prompt with resume and JD
+    user_prompt = f"""
+Resume Text:
+{resume_text}
+
+Job Description:
+{job_description}
+
+Analyze this resume against the job description and provide a detailed ATS compatibility analysis in JSON format with the following structure:
+{{
+  "overall_score": <0-100>,
+  "keyword_match_rate": <0-100>,
+  "ats_compatible": <true/false>,
+  "parsing_results": {{
+    "extracted_sections": [<list of section names found>],
+    "failed_sections": [<list of sections that would fail to parse>],
+    "formatting_issues": [<list of formatting problems>]
+  }},
+  "keyword_analysis": {{
+    "matched_keywords": [<list of matched keywords from JD>],
+    "missing_keywords": [<list of critical missing keywords>],
+    "keyword_density": <decimal 0-1>
+  }},
+  "recommendations": [
+    {{
+      "priority": "<high|medium|low>",
+      "category": "<formatting|keywords|structure>",
+      "issue": "<description of issue>",
+      "suggestion": "<specific fix suggestion>"
+    }}
+  ],
+  "ats_specific_tips": [<list of ATS-specific optimization tips>]
+}}
+"""
+
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt}
+            ],
+            response_format={"type": "json_object"},
+            temperature=0.7,
+            max_tokens=2000
+        )
+
+        # Parse the JSON response
+        analysis_result = json.loads(response.choices[0].message.content)
+        return analysis_result
+
+    except Exception as e:
+        raise Exception(f"OpenAI API error: {str(e)}")
+
+
+def get_ats_system_prompt(ats_system: str) -> str:
+    """
+    Get system prompt specific to the selected ATS
+
+    Args:
+        ats_system: ATS system name (workday, greenhouse, lever, ashby)
+
+    Returns:
+        System prompt string for OpenAI
+    """
+
+    prompts = {
+        "workday": """You are an expert ATS analyzer specializing in Workday's resume parsing system.
+
+Workday ATS characteristics:
+- Uses EXACT keyword matching (not synonyms) - if job says "Project Management Professional (PMP)", resume must have exact match
+- Recognizes only STANDARD section headings: "Work Experience", "Skills", "Education", "Contact Information"
+- Creative headings like "Career Highlights" or "My Journey" will be SKIPPED entirely
+- Prefers single-column layouts - tables and multiple columns cause parsing failures
+- DOCX format is preferred over PDF for better text extraction
+- Struggles with graphics, images, tables, and text boxes
+
+Your analysis should:
+1. Identify exact keyword matches vs misses (be strict - "SQL" ≠ "database skills")
+2. Flag non-standard section headings
+3. Detect formatting that would break Workday's parser
+4. Provide Workday-specific optimization tips
+
+Be critical and realistic - if the resume would fail Workday's parser, say so clearly.""",
+
+        "greenhouse": """You are an expert ATS analyzer specializing in Greenhouse's resume parsing system.
+
+Greenhouse ATS characteristics:
+- Strong structured data extraction with NLP understanding
+- More forgiving with synonyms than Workday, but exact matches still prioritized
+- Handles standard resume formats well (chronological, functional)
+- Extracts work history, education, skills automatically into structured fields
+- Integrates well with 300+ HR tools, uses data consistency
+- Performs semantic matching - understands "led team of 5" ≈ "managed 5-person team"
+- Still requires standard headings for best results
+
+Your analysis should:
+1. Evaluate how well resume data would map to Greenhouse's structured fields
+2. Check for keyword relevance (both exact and semantic matches)
+3. Assess compatibility with standard resume formats
+4. Provide Greenhouse-specific integration tips
+
+Focus on structured data quality and semantic relevance.""",
+
+        "lever": """You are an expert ATS analyzer specializing in Lever's resume parsing system.
+
+Lever ATS characteristics:
+- Emphasizes CRM-style candidate relationship management
+- Uses advanced semantic understanding and NLP
+- Focuses on candidate journey and long-term talent pipeline
+- Better at inferring related skills not explicitly mentioned
+- Prioritizes candidate experience quality
+- Native AI insights for skill inference
+- Still benefits from clean formatting and clear structure
+
+Your analysis should:
+1. Evaluate semantic skill matching (inferred vs explicit)
+2. Assess candidate story clarity and career progression
+3. Check for relationship-building potential in resume content
+4. Provide Lever-specific optimization for candidate pipeline
+
+Lever is more candidate-friendly but still values clear, structured information.""",
+
+        "ashby": """You are an expert ATS analyzer specializing in Ashby's resume parsing system.
+
+Ashby ATS characteristics:
+- Uses cutting-edge AI matching algorithms
+- Advanced semantic understanding with machine learning
+- Focuses on skills inference and predictive matching
+- Better at understanding context and career transitions
+- Analyzes quality of experience, not just keyword presence
+- Strong at pattern recognition across industries
+- Modern, developer-friendly approach
+
+Your analysis should:
+1. Evaluate AI-friendly content (context, achievements, impact)
+2. Assess how well experience translates across domains
+3. Check for quantifiable achievements and metrics
+4. Provide Ashby-specific tips for AI optimization
+
+Ashby is the most advanced ATS but still requires clear, quantified achievements."""
+    }
+
+    base_prompt = f"""
+You are a professional ATS (Applicant Tracking System) analyzer.
+Analyze resumes with the parsing logic and ranking criteria of: {ats_system.upper()}
+
+CRITICAL STATISTICS TO REMEMBER:
+- 97% of Fortune 500 companies use ATS
+- 75% of resumes are rejected by ATS before human review
+- Most rejections are due to: formatting issues (30%), keyword mismatches (25%), missing information (20%)
+
+Your job is to provide honest, actionable feedback that helps candidates pass ATS screening.
+"""
+
+    return base_prompt + "\n\n" + prompts.get(ats_system.lower(), prompts["workday"])

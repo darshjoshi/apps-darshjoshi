@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
-from app.api.routes import example_app
+from app.api.routes import example_app, ats_boss
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -42,6 +42,7 @@ async def health_check():
 
 # Include routers
 app.include_router(example_app.router, prefix=settings.API_V1_STR)
+app.include_router(ats_boss.router, prefix=settings.API_V1_STR)
 
 
 # Startup event
