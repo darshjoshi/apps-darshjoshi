@@ -1,7 +1,8 @@
 import axios from 'axios';
 
-// Determine the API base URL based on environment
+// Determine the API base URL and key based on environment
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+const API_KEY = process.env.NEXT_PUBLIC_API_KEY || '';
 
 // Create axios instance with default configuration
 const api = axios.create({
@@ -12,14 +13,13 @@ const api = axios.create({
   timeout: 10000, // 10 seconds
 });
 
-// Request interceptor for adding auth tokens if needed
+// Request interceptor for adding API key and auth tokens
 api.interceptors.request.use(
   (config) => {
-    // Add auth token here if you implement authentication
-    // const token = localStorage.getItem('token');
-    // if (token) {
-    //   config.headers.Authorization = `Bearer ${token}`;
-    // }
+    // Add API key if configured
+    if (API_KEY) {
+      config.headers['X-API-Key'] = API_KEY;
+    }
     return config;
   },
   (error) => {

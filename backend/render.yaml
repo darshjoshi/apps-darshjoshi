@@ -15,5 +15,7 @@ services:
         value: https://apps.darshjoshi.com,http://localhost:3000
       - key: SECRET_KEY
         generateValue: true
+      - key: API_KEY
+        generateValue: true
       - key: PYTHON_VERSION
         value: 3.11.0
