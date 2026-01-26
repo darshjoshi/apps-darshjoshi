@@ -6,6 +6,7 @@ import logging
 from app.services.resume_parser import parse_resume_pdf, validate_pdf_size
 from app.services.openai_service import generate_recommendations
 from app.services.ats_parsers import WorkdayParser, GreenhouseParser, AshbyParser
+from app.services.token_tracker import TokenTracker
 from typing import Dict, Any
 
 # Configure logger
@@ -54,6 +55,9 @@ async def analyze_resume(
     logger.info(f"[ATS_ANALYZER] ATS System: {ats_system.upper()}")
     logger.info(f"[ATS_ANALYZER] Job Description Length: {len(job_description)} chars")
 
+    # Create token tracker to aggregate usage across all OpenAI calls
+    tracker = TokenTracker()
+
     # Validate PDF size (max 5MB)
     if not validate_pdf_size(base64_pdf, max_size_mb=5.0):
         raise ValueError("PDF file too large. Maximum size is 5MB")
@@ -76,21 +80,21 @@ async def analyze_resume(
             # Workday: Strict exact matching, standard headings only
             logger.info("[ATS_ANALYZER] Using Workday parser (strict exact matching)")
             parser = WorkdayParser()
-            parsing_results = await parser.parse_resume(resume_text, job_description)
+            parsing_results = await parser.parse_resume(resume_text, job_description, tracker)
             logger.info("[ATS_ANALYZER] ✓ Workday parsing complete")
 
         elif ats_system_lower == "greenhouse":
             # Greenhouse: Structured data extraction with semantic understanding
             logger.info("[ATS_ANALYZER] Using Greenhouse parser (semantic understanding)")
             parser = GreenhouseParser()
-            parsing_results = await parser.parse_resume(resume_text, job_description)
+            parsing_results = await parser.parse_resume(resume_text, job_description, tracker)
             logger.info("[ATS_ANALYZER] ✓ Greenhouse parsing complete")
 
         elif ats_system_lower == "ashby":
             # Ashby: AI-powered with focus on achievements and metrics
             logger.info("[ATS_ANALYZER] Using Ashby parser (AI-powered metrics focus)")
             parser = AshbyParser()
-            parsing_results = await parser.parse_resume(resume_text, job_description)
+            parsing_results = await parser.parse_resume(resume_text, job_description, tracker)
             logger.info("[ATS_ANALYZER] ✓ Ashby parsing complete")
 
         elif ats_system_lower == "lever":
@@ -100,7 +104,8 @@ async def analyze_resume(
             parsing_results = await analyze_resume_with_openai(
                 resume_text=resume_text,
                 job_description=job_description.strip(),
-                ats_system="lever"
+                ats_system="lever",
+                tracker=tracker
             )
             logger.info("[ATS_ANALYZER] ✓ Lever parsing complete")
         else:
@@ -121,7 +126,8 @@ async def analyze_resume(
                 parsing_results=parsing_results,
                 ats_system=ats_system_lower,
                 resume_text=resume_text,
-                job_description=job_description
+                job_description=job_description,
+                tracker=tracker
             )
             logger.info(f"[ATS_ANALYZER] ✓ Generated {len(recommendations_and_tips.get('recommendations', []))} recommendations")
 
@@ -160,12 +166,15 @@ async def analyze_resume(
             "resume_length": len(resume_text),
             "jd_length": len(job_description),
             "parsing_method": "real_engine" if ats_system_lower != "lever" else "llm_based"
-        }
+        },
+        "usage": tracker.to_dict()  # Include token usage and cost
     }
 
     logger.info(f"[ATS_ANALYZER] ========== Analysis Complete ==========")
     logger.info(f"[ATS_ANALYZER] Final Score: {analysis_result['overall_score']}/100")
     logger.info(f"[ATS_ANALYZER] Keyword Match Rate: {analysis_result['keyword_match_rate']}%")
     logger.info(f"[ATS_ANALYZER] ATS Compatible: {analysis_result['ats_compatible']}")
+    logger.info(f"[ATS_ANALYZER] 💰 Token Usage: {tracker.prompt_tokens} input, {tracker.completion_tokens} output = ${tracker.cost_usd:.4f}")
 
     return analysis_result
+

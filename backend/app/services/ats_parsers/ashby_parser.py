@@ -5,9 +5,10 @@ Mimics Ashby's AI-powered matching with criteria-based evaluation
 import re
 import json
 import logging
-from typing import Dict, List, Any, Tuple
+from typing import Dict, List, Any, Tuple, Optional
 from openai import OpenAI
 from app.config import settings
+from app.services.token_tracker import TokenTracker
 from .keyword_extractor import keyword_extractor
 
 # Configure logger
@@ -27,9 +28,12 @@ class AshbyParser:
     - Career progression analysis
     """
 
-    async def parse_resume(self, resume_text: str, job_description: str) -> Dict[str, Any]:
+    async def parse_resume(self, resume_text: str, job_description: str, tracker: Optional[TokenTracker] = None) -> Dict[str, Any]:
         """
         Parse resume using Ashby's AI-powered logic
+        
+        Args:
+            tracker: Optional TokenTracker to record API usage
         """
         results = {
             "extracted_sections": [],
@@ -54,11 +58,11 @@ class AshbyParser:
         results["formatting_issues"] = self._check_formatting(resume_text)
 
         # 4. Extract keywords with context (LLM-based)
-        jd_keywords = await self._extract_contextual_keywords(job_description)
+        jd_keywords = await self._extract_contextual_keywords(job_description, tracker)
 
         # 5. AI-style semantic matching
         logger.info("[ASHBY] Performing AI-powered semantic matching...")
-        keyword_analysis = await self._ai_keyword_match(resume_text, jd_keywords)
+        keyword_analysis = await self._ai_keyword_match(resume_text, jd_keywords, tracker)
         results["matched_keywords"] = keyword_analysis["matched"]
         results["missing_keywords"] = keyword_analysis["missing"]
 
@@ -204,13 +208,13 @@ class AshbyParser:
 
         return issues
 
-    async def _extract_contextual_keywords(self, job_description: str) -> List[str]:
+    async def _extract_contextual_keywords(self, job_description: str, tracker: Optional[TokenTracker] = None) -> List[str]:
         """
         Extract keywords with understanding of context and importance using LLM
         """
-        return await keyword_extractor.extract_keywords_llm(job_description)
+        return await keyword_extractor.extract_keywords_llm(job_description, tracker)
 
-    async def _ai_keyword_match(self, resume_text: str, keywords: List[str]) -> Dict[str, List[str]]:
+    async def _ai_keyword_match(self, resume_text: str, keywords: List[str], tracker: Optional[TokenTracker] = None) -> Dict[str, List[str]]:
         """
         Ashby uses AI-first matching with focus on:
         - Quantifiable achievements
@@ -273,6 +277,11 @@ Be thorough - look for demonstrated impact, not just keyword presence."""
             )
             
             result = json.loads(response.choices[0].message.content)
+            
+            # Track token usage
+            if tracker:
+                tracker.add_from_response(response)
+            
             matched = result.get("matched", [])
             missing = result.get("missing", [])
             

@@ -6,9 +6,10 @@ Falls back to rule-based extraction if LLM fails
 import re
 import json
 import logging
-from typing import List, Set, Dict, Any
+from typing import List, Set, Dict, Any, Optional
 from openai import OpenAI
 from app.config import settings
+from app.services.token_tracker import TokenTracker
 
 # Configure logger
 logger = logging.getLogger(__name__)
@@ -50,9 +51,13 @@ class KeywordExtractor:
         're', 'looking', 'required', 'qualifications', 'responsibilities'
     }
 
-    async def extract_keywords_llm(self, job_description: str) -> List[str]:
+    async def extract_keywords_llm(self, job_description: str, tracker: Optional[TokenTracker] = None) -> List[str]:
         """
         Extract keywords using OpenAI GPT-4o-mini
+        
+        Args:
+            job_description: The job description text to analyze
+            tracker: Optional TokenTracker to record API usage
         
         Returns:
             List of keywords extracted from the job description
@@ -103,6 +108,10 @@ Rules:
                 max_tokens=1000
             )
             logger.info("[KEYWORD_EXTRACTOR] OpenAI response received successfully")
+
+            # Track token usage
+            if tracker:
+                tracker.add_from_response(response)
 
             result = json.loads(response.choices[0].message.content)
             logger.debug(f"[KEYWORD_EXTRACTOR] Parsed response categories: {list(result.keys())}")

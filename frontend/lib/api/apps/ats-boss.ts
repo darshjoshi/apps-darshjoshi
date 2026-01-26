@@ -38,6 +38,14 @@ export interface ParsingResults {
   formatting_issues: string[];
 }
 
+export interface UsageInfo {
+  input_tokens: number;
+  output_tokens: number;
+  total_tokens: number;
+  cost_usd: number;
+  model: string;
+}
+
 export interface AnalysisResult {
   overall_score: number;
   keyword_match_rate: number;
@@ -46,6 +54,7 @@ export interface AnalysisResult {
   keyword_analysis: KeywordAnalysis;
   recommendations: Recommendation[];
   ats_specific_tips: string[];
+  usage?: UsageInfo;
 }
 
 export interface AnalysisResponse {

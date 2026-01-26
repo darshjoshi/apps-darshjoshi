@@ -5,8 +5,9 @@ Handles OpenAI API initialization and analysis requests
 
 from openai import OpenAI
 from app.config import settings
+from app.services.token_tracker import TokenTracker
 import json
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 
 # Initialize OpenAI client
 client = OpenAI(api_key=settings.OPENAI_API_KEY) if hasattr(settings, 'OPENAI_API_KEY') and settings.OPENAI_API_KEY else None
@@ -16,7 +17,8 @@ async def generate_recommendations(
     parsing_results: Dict[str, Any],
     ats_system: str,
     resume_text: str,
-    job_description: str
+    job_description: str,
+    tracker: Optional[TokenTracker] = None
 ) -> Dict[str, Any]:
     """
     Generate human-readable recommendations based on REAL parsing results
@@ -82,6 +84,10 @@ Focus on the ACTUAL issues found by the parser. Be specific and actionable.
             max_tokens=1500
         )
 
+        # Track token usage
+        if tracker:
+            tracker.add_from_response(response)
+
         recommendations = json.loads(response.choices[0].message.content)
         return recommendations
 
@@ -92,7 +98,8 @@ Focus on the ACTUAL issues found by the parser. Be specific and actionable.
 async def analyze_resume_with_openai(
     resume_text: str,
     job_description: str,
-    ats_system: str
+    ats_system: str,
+    tracker: Optional[TokenTracker] = None
 ) -> Dict[str, Any]:
     """
     Analyze resume against job description using OpenAI GPT-4o mini
@@ -157,6 +164,10 @@ Analyze this resume against the job description and provide a detailed ATS compa
             temperature=0.7,
             max_tokens=2000
         )
+
+        # Track token usage
+        if tracker:
+            tracker.add_from_response(response)
 
         # Parse the JSON response
         analysis_result = json.loads(response.choices[0].message.content)

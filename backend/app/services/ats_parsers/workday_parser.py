@@ -5,9 +5,10 @@ Mimics Workday's parsing logic with NLP semantic understanding
 import re
 import json
 import logging
-from typing import Dict, List, Any
+from typing import Dict, List, Any, Optional
 from openai import OpenAI
 from app.config import settings
+from app.services.token_tracker import TokenTracker
 from .keyword_extractor import keyword_extractor
 
 # Configure logger
@@ -61,9 +62,14 @@ class WorkdayParser:
         "awards"
     ]
 
-    async def parse_resume(self, resume_text: str, job_description: str) -> Dict[str, Any]:
+    async def parse_resume(self, resume_text: str, job_description: str, tracker: Optional[TokenTracker] = None) -> Dict[str, Any]:
         """
         Parse resume using Workday's strict logic
+
+        Args:
+            resume_text: The resume text to analyze
+            job_description: The job description to match against
+            tracker: Optional TokenTracker to record API usage
 
         Returns:
             Dictionary with parsing results, not LLM analysis
@@ -88,11 +94,11 @@ class WorkdayParser:
         results["formatting_issues"] = self._check_formatting(resume_text)
 
         # 3. Extract keywords from job description (LLM-based)
-        jd_keywords = await self._extract_keywords(job_description)
+        jd_keywords = await self._extract_keywords(job_description, tracker)
 
         # 4. Semantic keyword matching (Workday uses NLP understanding)
         logger.info("[WORKDAY] Performing semantic keyword matching...")
-        keyword_analysis = await self._semantic_keyword_match(resume_text, jd_keywords)
+        keyword_analysis = await self._semantic_keyword_match(resume_text, jd_keywords, tracker)
         results["matched_keywords"] = keyword_analysis["matched"]
         results["missing_keywords"] = keyword_analysis["missing"]
 
@@ -179,14 +185,14 @@ class WorkdayParser:
 
         return issues
 
-    async def _extract_keywords(self, job_description: str) -> List[str]:
+    async def _extract_keywords(self, job_description: str, tracker: Optional[TokenTracker] = None) -> List[str]:
         """
         Extract important keywords from job description using LLM
         Focuses on: skills, technologies, tools, certifications, requirements
         """
-        return await keyword_extractor.extract_keywords_llm(job_description)
+        return await keyword_extractor.extract_keywords_llm(job_description, tracker)
 
-    async def _semantic_keyword_match(self, resume_text: str, keywords: List[str]) -> Dict[str, List[str]]:
+    async def _semantic_keyword_match(self, resume_text: str, keywords: List[str], tracker: Optional[TokenTracker] = None) -> Dict[str, List[str]]:
         """
         Workday uses NLP semantic understanding - 'managed team' ≈ 'led team'
         Uses OpenAI to semantically match keywords against resume
@@ -236,6 +242,11 @@ Be rigorous but fair - match based on demonstrated skills, not just exact words.
             )
             
             result = json.loads(response.choices[0].message.content)
+            
+            # Track token usage
+            if tracker:
+                tracker.add_from_response(response)
+            
             matched = result.get("matched", [])
             missing = result.get("missing", [])
             analysis = result.get("analysis", "")

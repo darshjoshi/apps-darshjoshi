@@ -9,6 +9,7 @@ from typing import Dict, List, Any, Optional
 from datetime import datetime
 from openai import OpenAI
 from app.config import settings
+from app.services.token_tracker import TokenTracker
 from .keyword_extractor import keyword_extractor
 
 # Configure logger
@@ -44,9 +45,12 @@ class GreenhouseParser:
         "collaborated": ["worked with", "partnered", "coordinated with", "teamed up"],
     }
 
-    async def parse_resume(self, resume_text: str, job_description: str) -> Dict[str, Any]:
+    async def parse_resume(self, resume_text: str, job_description: str, tracker: Optional[TokenTracker] = None) -> Dict[str, Any]:
         """
         Parse resume using Greenhouse's structured extraction logic
+        
+        Args:
+            tracker: Optional TokenTracker to record API usage
         """
         results = {
             "extracted_sections": [],
@@ -68,11 +72,11 @@ class GreenhouseParser:
         results["formatting_issues"] = self._check_formatting(resume_text)
 
         # 3. Extract keywords from JD (LLM-based)
-        jd_keywords = await self._extract_keywords(job_description)
+        jd_keywords = await self._extract_keywords(job_description, tracker)
 
         # 4. Semantic keyword matching (Greenhouse uses ML-based matching)
         logger.info("[GREENHOUSE] Performing semantic keyword matching...")
-        keyword_analysis = await self._semantic_keyword_match(resume_text, jd_keywords)
+        keyword_analysis = await self._semantic_keyword_match(resume_text, jd_keywords, tracker)
         results["matched_keywords"] = keyword_analysis["matched"]
         results["missing_keywords"] = keyword_analysis["missing"]
 
@@ -232,13 +236,13 @@ class GreenhouseParser:
 
         return issues
 
-    async def _extract_keywords(self, job_description: str) -> List[str]:
+    async def _extract_keywords(self, job_description: str, tracker: Optional[TokenTracker] = None) -> List[str]:
         """
         Extract keywords from job description using LLM
         """
-        return await keyword_extractor.extract_keywords_llm(job_description)
+        return await keyword_extractor.extract_keywords_llm(job_description, tracker)
 
-    async def _semantic_keyword_match(self, resume_text: str, keywords: List[str]) -> Dict[str, List[str]]:
+    async def _semantic_keyword_match(self, resume_text: str, keywords: List[str], tracker: Optional[TokenTracker] = None) -> Dict[str, List[str]]:
         """
         Greenhouse uses ML-based semantic matching against structured data
         Uses OpenAI for semantic understanding
@@ -292,6 +296,11 @@ Be fair but accurate - match based on demonstrated experience, not just word pre
             )
             
             result = json.loads(response.choices[0].message.content)
+            
+            # Track token usage
+            if tracker:
+                tracker.add_from_response(response)
+            
             matched = result.get("matched", [])
             missing = result.get("missing", [])
             

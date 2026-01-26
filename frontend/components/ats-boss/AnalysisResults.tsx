@@ -4,6 +4,7 @@ import { useState } from 'react';
 import type { AnalysisResult } from '@/lib/api/apps/ats-boss';
 import { ScoreCard } from './ScoreCard';
 import { RecommendationList } from './RecommendationList';
+import { CostDisplay } from './CostDisplay';
 
 interface AnalysisResultsProps {
   results: AnalysisResult;
@@ -182,6 +183,9 @@ export function AnalysisResults({ results, atsSystem }: AnalysisResultsProps) {
           </div>
         )}
       </div>
+
+      {/* Cost/Usage Display */}
+      <CostDisplay usage={results.usage} />
     </div>
   );
 }

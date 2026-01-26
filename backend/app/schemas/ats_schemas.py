@@ -108,6 +108,16 @@ class AnalysisMeta(BaseModel):
     jd_length: int = Field(..., description="Number of characters in job description")
 
 
+class UsageInfo(BaseModel):
+    """API usage and cost information"""
+
+    input_tokens: int = Field(..., description="Number of input tokens used")
+    output_tokens: int = Field(..., description="Number of output tokens generated")
+    total_tokens: int = Field(..., description="Total tokens (input + output)")
+    cost_usd: float = Field(..., ge=0, description="Cost in USD for this analysis")
+    model: str = Field(default="gpt-4o-mini", description="Model used for analysis")
+
+
 class AnalysisResponse(BaseModel):
     """Complete analysis response"""
 
@@ -146,6 +156,10 @@ class AnalysisResponse(BaseModel):
     meta: Optional[AnalysisMeta] = Field(
         None,
         description="Metadata about the analysis"
+    )
+    usage: Optional[UsageInfo] = Field(
+        None,
+        description="Token usage and cost information for this analysis"
     )
 
 
