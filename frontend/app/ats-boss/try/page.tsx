@@ -82,12 +82,18 @@ export default function ATSBossTry() {
       {/* Loading State */}
       {loading && (
         <div className="mb-12">
-          <LoadingState message={`Analyzing your resume with ${atsSystem.toUpperCase()} parser...`} />
+          <LoadingState message={`Deep analysis with GPT-5-mini for ${atsSystem.toUpperCase()}...`} />
           <div className="mt-4 text-center text-sm font-mono text-gray-600">
-            {atsSystem === 'ashby'
-              ? 'AI-powered analysis may take 20-30 seconds. Please wait...'
-              : 'This may take 10-15 seconds. Please wait...'
+            {atsSystem === 'lever'
+              ? 'Lever analysis takes 10-15 seconds. Please wait...'
+              : 'GPT-5-mini deep reasoning analysis takes 30-60 seconds. Please be patient...'
             }
+          </div>
+          <div className="mt-2 text-center text-xs font-mono text-blue-600">
+            🧠 AI is thinking deeply to replicate exact ATS behavior
+          </div>
+          <div className="mt-2 text-center text-xs font-mono text-gray-500 italic">
+            Deep reasoning = higher accuracy. Worth the wait!
           </div>
         </div>
       )}

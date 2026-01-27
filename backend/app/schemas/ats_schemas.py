@@ -4,7 +4,7 @@ Request and response models for type validation
 """
 
 from pydantic import BaseModel, Field, field_validator
-from typing import List, Dict, Any, Optional, Literal
+from typing import List, Dict, Any, Optional, Literal, Union
 
 
 # Request Models
@@ -80,7 +80,7 @@ class KeywordAnalysis(BaseModel):
 
 
 class Recommendation(BaseModel):
-    """Single recommendation for improvement"""
+    """Single recommendation for improvement (old format)"""
 
     priority: Literal["high", "medium", "low"] = Field(
         ...,
@@ -97,6 +97,27 @@ class Recommendation(BaseModel):
     suggestion: str = Field(
         ...,
         description="Specific actionable suggestion to fix the issue"
+    )
+
+
+class DeepRecommendation(BaseModel):
+    """Deep recommendation from GPT-5-mini (new format)"""
+
+    category: str = Field(
+        ...,
+        description="Category of the recommendation"
+    )
+    current_state: str = Field(
+        ...,
+        description="Current state of the issue"
+    )
+    recommended_change: str = Field(
+        ...,
+        description="Specific change recommended"
+    )
+    expected_impact: str = Field(
+        ...,
+        description="Expected impact of the change"
     )
 
 
@@ -121,13 +142,13 @@ class UsageInfo(BaseModel):
 class AnalysisResponse(BaseModel):
     """Complete analysis response"""
 
-    overall_score: int = Field(
+    overall_score: Union[int, float] = Field(
         ...,
         ge=0,
         le=100,
         description="Overall ATS compatibility score (0-100)"
     )
-    keyword_match_rate: int = Field(
+    keyword_match_rate: Union[int, float] = Field(
         ...,
         ge=0,
         le=100,
@@ -145,9 +166,9 @@ class AnalysisResponse(BaseModel):
         ...,
         description="Keyword matching analysis"
     )
-    recommendations: List[Recommendation] = Field(
+    recommendations: List[Union[Recommendation, DeepRecommendation]] = Field(
         default_factory=list,
-        description="List of improvement recommendations"
+        description="List of improvement recommendations (old or new format)"
     )
     ats_specific_tips: List[str] = Field(
         default_factory=list,
