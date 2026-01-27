@@ -12,4 +12,4 @@ python-multipart==0.0.20
 # ATS Boss dependencies
 pdfplumber==0.11.0  # PDF parsing
 openai>=1.54.0  # OpenAI API client (compatible with httpx 0.28+)
-typst>=0.12.0  # PDF generation from Typst markup
+reportlab>=4.4.0  # PDF generation (pure Python, built-in fonts)

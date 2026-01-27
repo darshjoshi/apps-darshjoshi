@@ -1,15 +1,14 @@
 """
 Resume Generator Service
-Orchestrates PDF generation using GPT-5-mini for content restructuring and Typst for rendering
+Orchestrates PDF generation using GPT-5-mini for content restructuring
+and ReportLab for rendering.
 """
 
-import json
 import logging
 from typing import Dict, Any, Optional
 
 from app.services.gpt5_mini_service import gpt5_service
-from app.services.typst_compiler import typst_compiler, TypstCompilationError
-from app.services.resume_templates import get_template
+from app.services.pdf_builder import pdf_builder
 from app.services.token_tracker import TokenTracker
 from app.schemas.resume_schemas import StructuredResume
 
@@ -119,15 +118,6 @@ ATS-SPECIFIC REQUIREMENTS (Ashby):
     ) -> str:
         """
         Build the user prompt with resume, JD, and analysis data
-
-        Args:
-            resume_text: Original resume text
-            job_description: Target job description
-            analysis_result: Analysis from the /analyze endpoint
-            ats_system: Target ATS system
-
-        Returns:
-            User prompt string
         """
         # Extract key analysis data
         missing_keywords = analysis_result.get("keyword_analysis", {}).get("missing_keywords", [])
@@ -175,51 +165,6 @@ Please restructure this resume into the JSON format specified in the system prom
 Preserve all factual information while optimizing for {ats_system.upper()} ATS parsing.
 Naturally incorporate missing keywords ONLY where they genuinely apply to the candidate's experience."""
 
-    def _structured_to_typst_data(self, data: StructuredResume) -> Dict[str, Any]:
-        """
-        Convert StructuredResume to dict for Typst template
-
-        Args:
-            data: Structured resume data
-
-        Returns:
-            Dictionary for Typst template variables
-        """
-        return {
-            "name": data.contact.name,
-            "email": data.contact.email,
-            "phone": data.contact.phone,
-            "location": data.contact.location,
-            "linkedin": data.contact.linkedin,
-            "summary": data.summary,
-            "experience": [
-                {
-                    "company": exp.company,
-                    "title": exp.title,
-                    "location": exp.location,
-                    "start_date": exp.start_date,
-                    "end_date": exp.end_date,
-                    "bullets": exp.bullets
-                }
-                for exp in data.experience
-            ],
-            "education": [
-                {
-                    "institution": edu.institution,
-                    "degree": edu.degree,
-                    "location": edu.location,
-                    "graduation_date": edu.graduation_date,
-                    "gpa": edu.gpa
-                }
-                for edu in data.education
-            ],
-            "skills": {
-                "technical": data.skills.technical,
-                "tools": data.skills.tools,
-                "soft": data.skills.soft
-            }
-        }
-
     async def generate_optimized_resume(
         self,
         resume_text: str,
@@ -240,17 +185,13 @@ Naturally incorporate missing keywords ONLY where they genuinely apply to the ca
 
         Returns:
             PDF file as bytes
-
-        Raises:
-            ValueError: If inputs are invalid
-            Exception: If generation fails
         """
         logger.info(f"[RESUME_GEN] Starting PDF generation for {ats_system.upper()}")
 
         if tracker is None:
             tracker = TokenTracker()
 
-        # Step 1: Call GPT-5-mini to restructure resume
+        # Step 1: Call GPT-5-mini to restructure resume content
         logger.info("[RESUME_GEN] Step 1: Calling GPT-5-mini for content restructuring")
 
         system_prompt = self._get_system_prompt(ats_system)
@@ -270,35 +211,24 @@ Naturally incorporate missing keywords ONLY where they genuinely apply to the ca
 
             # Validate response structure
             structured_resume = StructuredResume(**gpt_response)
-            logger.info("[RESUME_GEN] ✓ Resume structured successfully")
+            logger.info("[RESUME_GEN] Step 1 complete: Resume structured successfully")
 
         except Exception as e:
-            logger.error(f"[RESUME_GEN] ✗ GPT-5-mini restructuring failed: {str(e)}")
+            logger.error(f"[RESUME_GEN] GPT-5-mini restructuring failed: {str(e)}")
             raise Exception(f"Resume restructuring failed: {str(e)}")
 
-        # Step 2: Load ATS-specific template
-        logger.info(f"[RESUME_GEN] Step 2: Loading {ats_system} template")
+        # Step 2: Build PDF with ReportLab
+        logger.info(f"[RESUME_GEN] Step 2: Building PDF with ReportLab ({ats_system})")
 
         try:
-            template = get_template(ats_system)
-            logger.info("[RESUME_GEN] ✓ Template loaded")
+            pdf_bytes = pdf_builder.build(structured_resume, ats_system)
+            logger.info(f"[RESUME_GEN] Step 2 complete: PDF built ({len(pdf_bytes)} bytes)")
         except Exception as e:
-            logger.error(f"[RESUME_GEN] ✗ Template loading failed: {str(e)}")
-            raise Exception(f"Template loading failed: {str(e)}")
-
-        # Step 3: Compile Typst to PDF
-        logger.info("[RESUME_GEN] Step 3: Compiling Typst to PDF")
-
-        try:
-            typst_data = self._structured_to_typst_data(structured_resume)
-            pdf_bytes = typst_compiler.compile_template_with_data(template, typst_data)
-            logger.info(f"[RESUME_GEN] ✓ PDF generated successfully ({len(pdf_bytes)} bytes)")
-        except TypstCompilationError as e:
-            logger.error(f"[RESUME_GEN] ✗ Typst compilation failed: {str(e)}")
-            raise Exception(f"PDF compilation failed: {str(e)}")
+            logger.error(f"[RESUME_GEN] PDF build failed: {str(e)}")
+            raise Exception(f"PDF generation failed: {str(e)}")
 
         logger.info(f"[RESUME_GEN] PDF generation complete for {ats_system.upper()}")
-        logger.info(f"[RESUME_GEN] 💰 Token usage: {tracker.prompt_tokens} input, {tracker.completion_tokens} output = ${tracker.cost_usd:.4f}")
+        logger.info(f"[RESUME_GEN] Token usage: {tracker.prompt_tokens} in, {tracker.completion_tokens} out = ${tracker.cost_usd:.4f}")
 
         return pdf_bytes
 
