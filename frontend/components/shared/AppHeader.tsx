@@ -5,15 +5,16 @@ import { Logo } from '@/components/ui/logo';
 interface AppHeaderProps {
   appName: string;
   showBackButton?: boolean;
+  backUrl?: string;
 }
 
-export function AppHeader({ appName, showBackButton = true }: AppHeaderProps) {
+export function AppHeader({ appName, showBackButton = true, backUrl = '/' }: AppHeaderProps) {
   return (
     <header className="border-b-2 border-black">
       <div className="max-w-7xl mx-auto px-6 py-6 flex items-center justify-between">
         {showBackButton ? (
           <Link
-            href="/"
+            href={backUrl}
             className="flex items-center gap-2 text-gray-600 hover:text-black transition-colors group"
           >
             <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
