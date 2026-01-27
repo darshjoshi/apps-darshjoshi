@@ -127,6 +127,9 @@ class AnalysisMeta(BaseModel):
     ats_system: str = Field(..., description="ATS system used for analysis")
     resume_length: int = Field(..., description="Number of characters in resume")
     jd_length: int = Field(..., description="Number of characters in job description")
+    resume_text: Optional[str] = Field(None, description="Extracted resume text for PDF generation")
+    parsing_method: Optional[str] = Field(None, description="Method used for parsing")
+    analysis_model: Optional[str] = Field(None, description="Model used for analysis")
 
 
 class UsageInfo(BaseModel):
