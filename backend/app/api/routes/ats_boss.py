@@ -3,6 +3,8 @@ ATS Boss API Routes
 Endpoints for resume analysis and ATS optimization
 """
 
+import logging
+
 from fastapi import APIRouter, HTTPException, Depends
 from fastapi.responses import StreamingResponse
 from app.dependencies import verify_api_key
@@ -18,6 +20,8 @@ from app.services.resume_generator import resume_generator
 from app.services.token_tracker import TokenTracker
 from typing import Dict, Any
 import io
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(
     prefix="/ats-boss",
@@ -65,10 +69,10 @@ async def analyze_resume_endpoint(request: AnalyzeRequest) -> Dict[str, Any]:
             detail=str(e)
         )
     except Exception as e:
-        # Other errors (OpenAI API, etc.)
+        logger.error(f"Analysis failed: {str(e)}", exc_info=True)
         raise HTTPException(
             status_code=500,
-            detail=f"Analysis failed: {str(e)}"
+            detail="Analysis failed due to an internal error. Please try again."
         )
 
 
@@ -188,8 +192,8 @@ async def generate_optimized_pdf(request: GeneratePDFRequest):
             detail=str(e)
         )
     except Exception as e:
-        # Other errors (OpenAI API, Typst compilation, etc.)
+        logger.error(f"PDF generation failed: {str(e)}", exc_info=True)
         raise HTTPException(
             status_code=500,
-            detail=f"PDF generation failed: {str(e)}"
+            detail="PDF generation failed due to an internal error. Please try again."
         )

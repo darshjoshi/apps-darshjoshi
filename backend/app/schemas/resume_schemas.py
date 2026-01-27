@@ -73,7 +73,8 @@ class GeneratePDFRequest(BaseModel):
     job_description: str = Field(
         ...,
         min_length=50,
-        description="Job description text"
+        max_length=50000,
+        description="Job description text (50 to 50,000 characters)"
     )
     analysis_result: Dict[str, Any] = Field(
         ...,

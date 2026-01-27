@@ -205,7 +205,9 @@ class ATSBossAPI extends BaseAPI {
    * Analyze resume against job description
    */
   analyzeResume = (data: AnalyzeRequest) =>
-    this.call<AnalysisResponse>('/analyze', 'POST', data);
+    api.post<AnalysisResponse>(`${this.endpoint}/analyze`, data, {
+      timeout: 180000, // 3 minutes for deep analysis
+    });
 
   /**
    * Generate ATS-optimized PDF resume

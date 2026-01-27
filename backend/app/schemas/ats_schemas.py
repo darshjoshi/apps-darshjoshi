@@ -23,7 +23,8 @@ class AnalyzeRequest(BaseModel):
     job_description: str = Field(
         ...,
         min_length=50,
-        description="Job description text (minimum 50 characters)"
+        max_length=50000,
+        description="Job description text (50 to 50,000 characters)"
     )
 
     @field_validator("resume_file")
@@ -140,6 +141,9 @@ class UsageInfo(BaseModel):
     total_tokens: int = Field(..., description="Total tokens (input + output)")
     cost_usd: float = Field(..., ge=0, description="Cost in USD for this analysis")
     model: str = Field(default="gpt-4o-mini", description="Model used for analysis")
+    reasoning_tokens: Optional[int] = Field(None, description="GPT-5-mini reasoning/thinking tokens")
+    actual_output_tokens: Optional[int] = Field(None, description="Actual output tokens (excluding reasoning)")
+    breakdown: Optional[Dict[str, Any]] = Field(None, description="Cost breakdown by model")
 
 
 class AnalysisResponse(BaseModel):

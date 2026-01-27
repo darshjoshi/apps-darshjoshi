@@ -9,7 +9,7 @@ const api: AxiosInstance = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  timeout: 120000, // 2 minutes for GPT-5-mini deep reasoning analysis
+  timeout: 120000, // 2 minutes default
 });
 
 // Request interceptor
