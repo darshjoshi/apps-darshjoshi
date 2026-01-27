@@ -10,7 +10,7 @@ import json
 from typing import Dict, Any, Optional
 
 # Initialize OpenAI client
-client = OpenAI(api_key=settings.OPENAI_API_KEY) if hasattr(settings, 'OPENAI_API_KEY') and settings.OPENAI_API_KEY else None
+client = OpenAI(api_key=settings.OPENAI_API_KEY, timeout=300.0) if hasattr(settings, 'OPENAI_API_KEY') and settings.OPENAI_API_KEY else None
 
 
 async def generate_recommendations(
