@@ -279,12 +279,6 @@ Return JSON:
         result.setdefault("critical_issues", [])
         result.setdefault("recommendations", [])
         result.setdefault("reasoning_summary", "Analysis completed.")
-        result.setdefault("ats_specific_tips", [
-            "Use clear section headers and bullet points for easy data extraction",
-            "Include dates in consistent format (MM/YYYY or Month YYYY)",
-            "List skills separately and categorize them (Technical, Soft Skills, etc.)",
-            "Semantic matching is supported, but exact keywords still prioritized"
-        ])
 
         # Add backward compatibility fields for existing frontend
         result["overall_score"] = scoring.get("overall_score", 0)

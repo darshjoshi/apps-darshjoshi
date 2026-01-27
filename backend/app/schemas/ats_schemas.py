@@ -170,10 +170,6 @@ class AnalysisResponse(BaseModel):
         default_factory=list,
         description="List of improvement recommendations (old or new format)"
     )
-    ats_specific_tips: List[str] = Field(
-        default_factory=list,
-        description="ATS-specific optimization tips"
-    )
     meta: Optional[AnalysisMeta] = Field(
         None,
         description="Metadata about the analysis"

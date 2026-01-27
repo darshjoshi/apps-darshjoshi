@@ -54,7 +54,6 @@ An {ats_system.upper()} parsing engine has analyzed a resume. Here are the ACTUA
 Based on these REAL parsing results, generate:
 
 1. **Recommendations**: Specific, actionable fixes prioritized by impact
-2. **{ats_system.upper()} Tips**: System-specific optimization advice
 
 Return JSON:
 {{
@@ -65,8 +64,7 @@ Return JSON:
       "issue": "what the parser found",
       "suggestion": "how to fix it"
     }}
-  ],
-  "ats_specific_tips": ["tip1", "tip2", ...]
+  ]
 }}
 
 Focus on the ACTUAL issues found by the parser. Be specific and actionable.
@@ -148,8 +146,7 @@ Analyze this resume against the job description and provide a detailed ATS compa
       "issue": "<description of issue>",
       "suggestion": "<specific fix suggestion>"
     }}
-  ],
-  "ats_specific_tips": [<list of ATS-specific optimization tips>]
+  ]
 }}
 """
 

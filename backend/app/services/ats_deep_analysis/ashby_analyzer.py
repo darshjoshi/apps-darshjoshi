@@ -306,12 +306,6 @@ Return JSON:
         result.setdefault("recommendations", [])
         result.setdefault("standout_factors", [])
         result.setdefault("reasoning_summary", "Analysis completed.")
-        result.setdefault("ats_specific_tips", [
-            "Quantify achievements with metrics (%, $, time saved, team size)",
-            "Show career progression and growth trajectory clearly",
-            "Include both acronyms and full phrases (e.g., 'LLM (Large Language Models)')",
-            "Ashby's AI understands context - focus on demonstrating impact over keyword stuffing"
-        ])
 
         # Add backward compatibility fields for existing frontend
         result["overall_score"] = scoring.get("overall_score", 0)

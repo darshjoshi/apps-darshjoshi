@@ -119,7 +119,6 @@ export interface AnalysisResult {
   parsing_results: ParsingResults;
   keyword_analysis: KeywordAnalysis;
   recommendations: Recommendation[] | DeepRecommendation[];
-  ats_specific_tips: string[];
   usage?: UsageInfo;
   
   // NEW: Deep analysis fields from GPT-5-mini

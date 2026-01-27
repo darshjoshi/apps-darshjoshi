@@ -260,12 +260,6 @@ Return JSON:
         result.setdefault("critical_issues", [])
         result.setdefault("recommendations", [])
         result.setdefault("reasoning_summary", "Analysis completed.")
-        result.setdefault("ats_specific_tips", [
-            "Use exact phrases from job description (Workday doesn't understand synonyms)",
-            "Standard section headings only: 'Work Experience', 'Education', 'Skills', 'Contact Information'",
-            "Save as single-column DOCX (preferred) or PDF",
-            "Avoid tables, text boxes, graphics, and multi-column layouts"
-        ])
 
         # Add backward compatibility fields for existing frontend
         result["overall_score"] = scoring.get("overall_score", 0)

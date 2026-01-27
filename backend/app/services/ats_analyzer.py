@@ -153,8 +153,7 @@ async def analyze_resume(
             "keyword_density": len(parsing_results.get("matched_keywords", [])) / max(len(resume_text.split()), 1)
         },
         "recommendations": parsing_results.get("recommendations", []),
-        "ats_specific_tips": parsing_results.get("ats_specific_tips", []),
-        
+
         # NEW: Deep analysis data from GPT-5-mini
         "scoring": scoring,
         "outcome": parsing_results.get("outcome", {}),

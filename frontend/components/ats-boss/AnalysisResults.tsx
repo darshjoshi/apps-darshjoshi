@@ -225,27 +225,6 @@ export function AnalysisResults({ results, atsSystem }: AnalysisResultsProps) {
         )}
       </div>
 
-      {/* ATS-Specific Tips Section */}
-      <div>
-        <SectionHeader
-          title={`${atsSystem.toUpperCase()} SPECIFIC TIPS`}
-          isExpanded={expandedSection === 'tips'}
-          onClick={() => toggleSection('tips')}
-        />
-        {expandedSection === 'tips' && (
-          <div className="border-2 border-t-0 border-black p-6">
-            <ul className="space-y-3">
-              {results.ats_specific_tips.map((tip, idx) => (
-                <li key={idx} className="flex items-start gap-3">
-                  <span className="text-blue-600 font-mono text-lg">→</span>
-                  <span className="text-sm font-mono flex-1">{tip}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-      </div>
-
       {/* Cost/Usage Display */}
       <CostDisplay usage={results.usage} />
     </div>
