@@ -171,11 +171,12 @@ async def generate_optimized_pdf(request: GeneratePDFRequest):
         filename = f"resume_optimized_{request.ats_system}.pdf"
 
         # Return as streaming response
+        # Use 'inline' disposition so browsers can preview the PDF
         return StreamingResponse(
             io.BytesIO(pdf_bytes),
             media_type="application/pdf",
             headers={
-                "Content-Disposition": f'attachment; filename="{filename}"',
+                "Content-Disposition": f'inline; filename="{filename}"',
                 "Content-Length": str(len(pdf_bytes))
             }
         )
