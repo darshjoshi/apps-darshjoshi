@@ -78,41 +78,56 @@ export function CostDisplay({ usage }: CostDisplayProps) {
             </p>
 
             {/* Stats grid */}
-            <div className="grid grid-cols-2 gap-4 mb-4">
-                <div className="border-2 border-black bg-white p-3">
-                    <div className="text-xs font-mono text-gray-500 uppercase">Model</div>
-                    <div className="text-sm font-bold font-mono">{usage.model}</div>
-                </div>
-                <div className="border-2 border-black bg-white p-3">
-                    <div className="text-xs font-mono text-gray-500 uppercase">Total Tokens</div>
-                    <div className="text-sm font-bold font-mono">{formatNumber(usage.total_tokens)}</div>
-                </div>
-                <div className="border-2 border-black bg-white p-3">
-                    <div className="text-xs font-mono text-gray-500 uppercase">Input Tokens</div>
-                    <div className="text-sm font-mono">{formatNumber(usage.input_tokens)}</div>
-                </div>
-                <div className="border-2 border-black bg-white p-3">
-                    <div className="text-xs font-mono text-gray-500 uppercase">Output Tokens</div>
-                    <div className="text-sm font-mono">{formatNumber(usage.output_tokens)}</div>
-                </div>
-            </div>
-
-            {/* Reasoning tokens breakdown (GPT-5-mini only) */}
-            {usage.reasoning_tokens && usage.reasoning_tokens > 0 && (
-                <div className="border-2 border-blue-600 bg-blue-50 p-4 mb-4">
-                    <div className="text-xs font-mono font-bold text-blue-900 uppercase mb-2">🧠 GPT-5-Mini Deep Reasoning</div>
-                    <div className="grid grid-cols-2 gap-3">
-                        <div className="bg-white p-2 border border-blue-300">
-                            <div className="text-xs font-mono text-gray-600">Reasoning (Thinking)</div>
-                            <div className="text-lg font-bold font-mono text-blue-700">{formatNumber(usage.reasoning_tokens)}</div>
+            {usage.reasoning_tokens && usage.reasoning_tokens > 0 ? (
+                <>
+                    {/* Reasoning model breakdown — shows input, reasoning, output separately */}
+                    <div className="border-2 border-black bg-white mb-4">
+                        <div className="flex items-center justify-between border-b-2 border-black px-4 py-2 bg-gray-50">
+                            <span className="text-xs font-mono font-bold uppercase">Token Breakdown</span>
+                            <span className="text-xs font-mono text-gray-500">{usage.model}</span>
                         </div>
-                        <div className="bg-white p-2 border border-blue-300">
-                            <div className="text-xs font-mono text-gray-600">Actual Output</div>
-                            <div className="text-lg font-bold font-mono text-green-700">{formatNumber(usage.actual_output_tokens || (usage.output_tokens - usage.reasoning_tokens))}</div>
+                        <div className="divide-y divide-gray-200">
+                            <div className="flex items-center justify-between px-4 py-3">
+                                <span className="text-sm font-mono text-gray-600">Input</span>
+                                <span className="text-sm font-bold font-mono">{formatNumber(usage.input_tokens)}</span>
+                            </div>
+                            <div className="flex items-center justify-between px-4 py-3 bg-blue-50">
+                                <div className="flex items-center gap-2">
+                                    <span className="text-sm font-mono text-blue-800 font-bold">Reasoning</span>
+                                    <span className="text-[10px] font-mono text-blue-600 border border-blue-300 px-1.5 py-0.5 bg-blue-100">
+                                        {Math.round((usage.reasoning_tokens / usage.output_tokens) * 100)}% of output
+                                    </span>
+                                </div>
+                                <span className="text-sm font-bold font-mono text-blue-800">{formatNumber(usage.reasoning_tokens)}</span>
+                            </div>
+                            <div className="flex items-center justify-between px-4 py-3">
+                                <span className="text-sm font-mono text-gray-600">Output</span>
+                                <span className="text-sm font-bold font-mono">{formatNumber(usage.actual_output_tokens || (usage.output_tokens - usage.reasoning_tokens))}</span>
+                            </div>
+                            <div className="flex items-center justify-between px-4 py-3 bg-gray-50 border-t-2 border-black">
+                                <span className="text-sm font-mono font-bold">Total</span>
+                                <span className="text-sm font-bold font-mono">{formatNumber(usage.total_tokens)}</span>
+                            </div>
                         </div>
                     </div>
-                    <div className="text-xs font-mono text-gray-600 mt-2 italic">
-                        GPT-5-mini spent {Math.round((usage.reasoning_tokens / usage.output_tokens) * 100)}% of output tokens on deep reasoning before generating the final analysis.
+                </>
+            ) : (
+                <div className="grid grid-cols-2 gap-4 mb-4">
+                    <div className="border-2 border-black bg-white p-3">
+                        <div className="text-xs font-mono text-gray-500 uppercase">Model</div>
+                        <div className="text-sm font-bold font-mono">{usage.model}</div>
+                    </div>
+                    <div className="border-2 border-black bg-white p-3">
+                        <div className="text-xs font-mono text-gray-500 uppercase">Total Tokens</div>
+                        <div className="text-sm font-bold font-mono">{formatNumber(usage.total_tokens)}</div>
+                    </div>
+                    <div className="border-2 border-black bg-white p-3">
+                        <div className="text-xs font-mono text-gray-500 uppercase">Input Tokens</div>
+                        <div className="text-sm font-mono">{formatNumber(usage.input_tokens)}</div>
+                    </div>
+                    <div className="border-2 border-black bg-white p-3">
+                        <div className="text-xs font-mono text-gray-500 uppercase">Output Tokens</div>
+                        <div className="text-sm font-mono">{formatNumber(usage.output_tokens)}</div>
                     </div>
                 </div>
             )}

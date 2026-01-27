@@ -14,7 +14,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 # Initialize OpenAI client
-client = OpenAI(api_key=settings.OPENAI_API_KEY) if hasattr(settings, 'OPENAI_API_KEY') and settings.OPENAI_API_KEY else None
+client = OpenAI(api_key=settings.OPENAI_API_KEY, timeout=300.0) if hasattr(settings, 'OPENAI_API_KEY') and settings.OPENAI_API_KEY else None
 
 
 class GPT5MiniService:
@@ -22,10 +22,14 @@ class GPT5MiniService:
 
     MODEL = "gpt-5-mini"
 
-    # Maximum reasoning configuration
-    MAX_TOKENS = 16000  # Balanced: enough for detailed analysis, faster than 64K
+    # Reasoning configuration — optimized for cost
+    # The analysis prompts are highly prescriptive (6-step protocol with full JSON schema),
+    # so the model doesn't need deep reasoning — it follows structured instructions.
+    # "low" reasoning effort reduces reasoning tokens by ~60-70% vs "medium" (default).
+    REASONING_EFFORT = "low"
+    MAX_TOKENS = 10000  # ~3-5K JSON output + ~2-4K low-effort reasoning tokens
     # Note: GPT-5-mini only supports default temperature (1.0)
-    # Note: Lower max_tokens = faster analysis (less reasoning time)
+    # Note: Output tokens (including reasoning) are 95% of cost at $2.00/1M
 
     async def deep_ats_analysis(
         self,
@@ -59,7 +63,8 @@ class GPT5MiniService:
                     {"role": "user", "content": user_prompt}
                 ],
                 response_format={"type": "json_object"},
-                max_completion_tokens=self.MAX_TOKENS  # GPT-5-mini uses max_completion_tokens instead of max_tokens
+                max_completion_tokens=self.MAX_TOKENS,
+                reasoning_effort=self.REASONING_EFFORT
                 # Note: temperature omitted - GPT-5-mini only supports default (1.0)
             )
 
@@ -71,8 +76,25 @@ class GPT5MiniService:
 
             # Extract reasoning tokens for logging
             reasoning_tokens = 0
-            if hasattr(response.usage, 'completion_tokens_details') and response.usage.completion_tokens_details:
-                reasoning_tokens = getattr(response.usage.completion_tokens_details, 'reasoning_tokens', 0) or 0
+            # Log full usage object for debugging reasoning tokens
+            try:
+                usage_dict = response.usage.model_dump() if hasattr(response.usage, 'model_dump') else vars(response.usage)
+                logger.info(f"[GPT5_MINI] Full usage dump: {usage_dict}")
+            except Exception as dump_err:
+                logger.info(f"[GPT5_MINI] Could not dump usage: {dump_err}")
+                logger.info(f"[GPT5_MINI] Raw usage: prompt={response.usage.prompt_tokens}, completion={response.usage.completion_tokens}, total={response.usage.total_tokens}")
+
+            completion_details = getattr(response.usage, 'completion_tokens_details', None)
+            logger.info(f"[GPT5_MINI] completion_tokens_details type={type(completion_details).__name__}, value={completion_details}")
+            if completion_details:
+                # Try both attribute access and dict access
+                reasoning_tokens = getattr(completion_details, 'reasoning_tokens', None)
+                if reasoning_tokens is None and isinstance(completion_details, dict):
+                    reasoning_tokens = completion_details.get('reasoning_tokens', 0)
+                reasoning_tokens = reasoning_tokens or 0
+                logger.info(f"[GPT5_MINI] Extracted reasoning_tokens={reasoning_tokens}")
+            else:
+                logger.warning("[GPT5_MINI] No completion_tokens_details found - reasoning tokens unavailable")
 
             # Add metadata
             result["_analysis_metadata"] = {

@@ -147,6 +147,7 @@ async def analyze_resume(
             "ats_system": ats_system_lower,
             "resume_length": len(resume_text),
             "jd_length": len(job_description),
+            "resume_text": resume_text,  # Include for PDF generation
             "parsing_method": "gpt5_mini_deep",
             "analysis_model": "gpt-5-mini"
         },
@@ -154,6 +155,9 @@ async def analyze_resume(
         "_analysis_metadata": parsing_results.get("_analysis_metadata", {})
     }
 
+    # Debug: log tracker state and final usage dict
+    logger.info(f"[ATS_ANALYZER] Tracker state: reasoning_tokens={tracker.reasoning_tokens}, completion_tokens={tracker.completion_tokens}")
+    logger.info(f"[ATS_ANALYZER] Usage dict: {analysis_result['usage']}")
     logger.info(f"[ATS_ANALYZER] ========== Deep Analysis Complete ==========")
     logger.info(f"[ATS_ANALYZER] Final Score: {analysis_result['overall_score']}/100")
     logger.info(f"[ATS_ANALYZER] Keyword Match Rate: {analysis_result['keyword_match_rate']}%")
