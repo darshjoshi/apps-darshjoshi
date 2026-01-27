@@ -105,7 +105,7 @@ async def analyze_resume_with_openai(
     Args:
         resume_text: Extracted text from resume PDF
         job_description: Job description provided by user
-        ats_system: ATS system to mimic (workday, greenhouse, lever, ashby)
+    ats_system: ATS system to mimic (workday, greenhouse, ashby)
 
     Returns:
         Dictionary containing analysis results
@@ -179,7 +179,7 @@ def get_ats_system_prompt(ats_system: str) -> str:
     Get system prompt specific to the selected ATS
 
     Args:
-        ats_system: ATS system name (workday, greenhouse, lever, ashby)
+    ats_system: ATS system name (workday, greenhouse, ashby)
 
     Returns:
         System prompt string for OpenAI
@@ -222,25 +222,6 @@ Your analysis should:
 4. Provide Greenhouse-specific integration tips
 
 Focus on structured data quality and semantic relevance.""",
-
-        "lever": """You are an expert ATS analyzer specializing in Lever's resume parsing system.
-
-Lever ATS characteristics:
-- Emphasizes CRM-style candidate relationship management
-- Uses advanced semantic understanding and NLP
-- Focuses on candidate journey and long-term talent pipeline
-- Better at inferring related skills not explicitly mentioned
-- Prioritizes candidate experience quality
-- Native AI insights for skill inference
-- Still benefits from clean formatting and clear structure
-
-Your analysis should:
-1. Evaluate semantic skill matching (inferred vs explicit)
-2. Assess candidate story clarity and career progression
-3. Check for relationship-building potential in resume content
-4. Provide Lever-specific optimization for candidate pipeline
-
-Lever is more candidate-friendly but still values clear, structured information.""",
 
         "ashby": """You are an expert ATS analyzer specializing in Ashby's resume parsing system.
 

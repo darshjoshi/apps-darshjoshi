@@ -12,7 +12,7 @@ from typing import List, Dict, Any, Optional, Literal, Union
 class AnalyzeRequest(BaseModel):
     """Request model for resume analysis"""
 
-    ats_system: Literal["workday", "greenhouse", "lever", "ashby"] = Field(
+    ats_system: Literal["workday", "greenhouse", "ashby"] = Field(
         ...,
         description="ATS system to mimic"
     )

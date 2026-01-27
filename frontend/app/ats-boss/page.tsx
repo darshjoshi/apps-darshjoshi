@@ -37,8 +37,8 @@ export default function ATSBossLanding() {
               to extract information from your resume. They look for exact keyword matches from the job
               description, standard section headings like &apos;Work Experience&apos; and &apos;Skills,&apos; and clean formatting
               that can be easily parsed. Each system has its own quirks: Workday prioritizes exact keyword
-              matches, Greenhouse focuses on structured data extraction, Lever emphasizes semantic
-              understanding, and Ashby uses advanced AI matching. A beautifully designed resume with
+              matches, Greenhouse focuses on structured data extraction, and Ashby uses advanced AI matching.
+              A beautifully designed resume with
               graphics and tables might impress a human, but it&apos;s invisible to ATS software.
             </p>
 

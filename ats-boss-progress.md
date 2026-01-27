@@ -48,7 +48,7 @@
 #### 1. **Backend Services** (`backend/app/services/`)
 - ✅ `openai_service.py` - OpenAI GPT-4o mini integration with ATS-specific prompts
   - analyze_resume_with_openai() function
-  - System prompts for Workday, Greenhouse, Lever, Ashby
+  - System prompts for Workday, Greenhouse, Ashby
   - Error handling and response formatting
 - ✅ `resume_parser.py` - PDF parsing using pdfplumber
   - parse_resume_pdf() for base64 PDF extraction
@@ -106,7 +106,7 @@ Using GPT-4o mini for analysis:
 
 #### 2. **Form Components** (`frontend/components/ats-boss/`)
 - ✅ `ATSSelector.tsx` - Dropdown for ATS system selection
-  - 4 systems: Workday, Greenhouse, Lever, Ashby
+  - 3 systems: Workday, Greenhouse, Ashby
   - Clean brutalist design matching site theme
 - ✅ `ResumeUpload.tsx` - PDF file upload with validation
   - Base64 conversion for API
@@ -263,7 +263,7 @@ ATS Boss is **fully implemented and ready to use!**
    - ATS Boss: `http://localhost:3000/ats-boss`
 
 4. **Test the Full Flow:**
-   - Select an ATS system (Workday, Greenhouse, Lever, or Ashby)
+   - Select an ATS system (Workday, Greenhouse, or Ashby)
    - Upload a PDF resume (max 5MB)
    - Paste a job description (min 50 characters)
    - Click "ANALYZE RESUME"
@@ -322,7 +322,7 @@ The app is complete and functional! Here are optional enhancements:
 - **Architecture:** Modular design with reusable components and hooks
 
 ### Key Features:
-✅ 4 ATS systems supported (Workday, Greenhouse, Lever, Ashby)
+✅ 3 ATS systems supported (Workday, Greenhouse, Ashby)
 ✅ PDF resume parsing with pdfplumber
 ✅ AI-powered analysis using OpenAI GPT-4o mini
 ✅ Comprehensive scoring and recommendations

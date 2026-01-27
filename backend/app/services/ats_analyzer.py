@@ -26,13 +26,12 @@ async def analyze_resume(
     Flow:
     1. Parse PDF to extract text
     2. Run GPT-5-mini deep ATS analyzer (Workday/Greenhouse/Ashby) - thinking-enabled
-    3. For Lever (complex NLP), use OpenAI gpt-4o-mini
     4. Return comprehensive results with reasoning
 
     Args:
         base64_pdf: Base64 encoded PDF resume
         job_description: Job description text
-        ats_system: ATS system to mimic (workday, greenhouse, lever, ashby)
+        ats_system: ATS system to mimic (workday, greenhouse, ashby)
 
     Returns:
         Complete analysis results with deep reasoning + recommendations
@@ -49,8 +48,8 @@ async def analyze_resume(
     if not job_description or len(job_description.strip()) < 50:
         raise ValueError("Job description must be at least 50 characters")
 
-    if ats_system.lower() not in ["workday", "greenhouse", "lever", "ashby"]:
-        raise ValueError("Invalid ATS system. Must be: workday, greenhouse, lever, or ashby")
+    if ats_system.lower() not in ["workday", "greenhouse", "ashby"]:
+        raise ValueError("Invalid ATS system. Must be: workday, greenhouse, or ashby")
 
     logger.info(f"[ATS_ANALYZER] ========== Starting Deep ATS Analysis (GPT-5-mini) ==========")
     logger.info(f"[ATS_ANALYZER] ATS System: {ats_system.upper()}")
@@ -95,28 +94,6 @@ async def analyze_resume(
             parsing_results = await ashby_analyzer.analyze(resume_text, job_description, tracker)
             logger.info("[ATS_ANALYZER] ✓ Ashby deep analysis complete")
 
-        elif ats_system_lower == "lever":
-            # Lever: Complex NLP - use OpenAI gpt-4o-mini for this
-            logger.info("[ATS_ANALYZER] Using Lever parser (OpenAI gpt-4o-mini NLP)")
-            from app.services.openai_service import analyze_resume_with_openai
-            raw_lever_results = await analyze_resume_with_openai(
-                resume_text=resume_text,
-                job_description=job_description.strip(),
-                ats_system="lever",
-                tracker=tracker
-            )
-            
-            # Flatten the structure to match expected format
-            parsing_results = {
-                "overall_score": raw_lever_results.get("overall_score", 0),
-                "keyword_match_rate": raw_lever_results.get("keyword_match_rate", 0),
-                "ats_compatible": raw_lever_results.get("ats_compatible", False),
-                "recommendations": raw_lever_results.get("recommendations", []),
-                # Unwrap nested objects
-                **raw_lever_results.get("parsing_results", {}),
-                **raw_lever_results.get("keyword_analysis", {})
-            }
-            logger.info("[ATS_ANALYZER] ✓ Lever parsing complete")
         else:
             raise ValueError(f"Unknown ATS system: {ats_system}")
 
@@ -126,9 +103,7 @@ async def analyze_resume(
 
     logger.info(f"[ATS_ANALYZER] Analysis results - Score: {parsing_results.get('overall_score', 0)}, Keywords matched: {len(parsing_results.get('matched_keywords', []))}")
 
-    # Step 3: For GPT-5-mini analyzers, recommendations are already included
-    # For Lever, recommendations are also included from OpenAI
-    # No need for separate recommendation generation step!
+    # Step 3: Recommendations included in deep analysis
     logger.info("[ATS_ANALYZER] STEP 3: Recommendations included in deep analysis")
 
     # Step 4: Structure final results in expected format
@@ -172,8 +147,8 @@ async def analyze_resume(
             "ats_system": ats_system_lower,
             "resume_length": len(resume_text),
             "jd_length": len(job_description),
-            "parsing_method": "gpt5_mini_deep" if ats_system_lower != "lever" else "gpt4o_mini",
-            "analysis_model": "gpt-5-mini" if ats_system_lower != "lever" else "gpt-4o-mini"
+            "parsing_method": "gpt5_mini_deep",
+            "analysis_model": "gpt-5-mini"
         },
         "usage": tracker.to_dict(),  # Include token usage and cost
         "_analysis_metadata": parsing_results.get("_analysis_metadata", {})
@@ -186,4 +161,3 @@ async def analyze_resume(
     logger.info(f"[ATS_ANALYZER] 💰 Token Usage: {tracker.prompt_tokens} input, {tracker.completion_tokens} output = ${tracker.cost_usd:.4f}")
 
     return analysis_result
-

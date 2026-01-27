@@ -192,29 +192,6 @@ export function ScoreCard({
               </div>
             )}
 
-            {/* Lever - simple display since it uses gpt-4o-mini */}
-            {atsSystem === 'lever' && (
-              <div className="grid grid-cols-3 gap-3">
-                <div className="border-2 border-black p-3 text-center">
-                  <div className={`text-2xl font-bold font-mono ${getScoreColor(scoring.keyword_score)}`}>
-                    {scoring.keyword_score}%
-                  </div>
-                  <div className="text-xs font-mono text-gray-600 mt-1">KEYWORDS</div>
-                </div>
-                <div className="border-2 border-black p-3 text-center">
-                  <div className={`text-2xl font-bold font-mono ${getScoreColor(scoring.section_score)}`}>
-                    {scoring.section_score}%
-                  </div>
-                  <div className="text-xs font-mono text-gray-600 mt-1">SECTIONS</div>
-                </div>
-                <div className="border-2 border-black p-3 text-center">
-                  <div className={`text-2xl font-bold font-mono ${getScoreColor(scoring.format_score)}`}>
-                    {scoring.format_score}%
-                  </div>
-                  <div className="text-xs font-mono text-gray-600 mt-1">FORMAT</div>
-                </div>
-              </div>
-            )}
           </>
         )}
 
