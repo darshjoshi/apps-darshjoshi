@@ -1,56 +1,7 @@
-'use client';
-
-import { useState } from 'react';
+import Link from 'next/link';
 import { AppLayout } from '@/components/layouts/AppLayout';
-import { LoadingState } from '@/components/shared/LoadingState';
-import { ErrorState } from '@/components/shared/ErrorState';
-import { ATSSelector } from '@/components/ats-boss/ATSSelector';
-import { ResumeUpload } from '@/components/ats-boss/ResumeUpload';
-import { JobDescInput } from '@/components/ats-boss/JobDescInput';
-import { AnalysisResults } from '@/components/ats-boss/AnalysisResults';
-import { useAPI } from '@/lib/hooks/useAPI';
-import { atsBossAPI, type AnalyzeRequest, type AnalysisResponse } from '@/lib/api/apps/ats-boss';
 
-export default function ATSBoss() {
-  const [atsSystem, setAtsSystem] = useState<string>('');
-  const [resumeBase64, setResumeBase64] = useState<string>('');
-  const [jobDescription, setJobDescription] = useState<string>('');
-
-  const { data, loading, error, execute, reset } = useAPI<AnalysisResponse>(
-    atsBossAPI.analyzeResume
-  );
-
-  const handleFileSelect = (file: File, base64: string) => {
-    setResumeBase64(base64);
-  };
-
-  const handleAnalyze = async () => {
-    if (!atsSystem || !resumeBase64 || !jobDescription.trim()) {
-      alert('Please fill in all fields');
-      return;
-    }
-
-    if (jobDescription.trim().length < 50) {
-      alert('Job description must be at least 50 characters');
-      return;
-    }
-
-    const request: AnalyzeRequest = {
-      ats_system: atsSystem as 'workday' | 'greenhouse' | 'lever' | 'ashby',
-      resume_file: resumeBase64,
-      job_description: jobDescription.trim(),
-    };
-
-    await execute(request);
-  };
-
-  const handleReset = () => {
-    setAtsSystem('');
-    setResumeBase64('');
-    setJobDescription('');
-    reset();
-  };
-
+export default function ATSBossLanding() {
   return (
     <AppLayout appName="ATS BOSS">
       {/* Hero Section */}
@@ -60,15 +11,22 @@ export default function ATSBoss() {
             BEAT THE ROBOTS
           </div>
 
-          <h1 className="text-4xl font-bold mb-6">
-            <span className="inline-block border-b-4 border-black pb-1">ATS Boss</span>
-          </h1>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+            <h1 className="text-4xl font-bold">
+              <span className="inline-block border-b-4 border-black pb-1">ATS Boss</span>
+            </h1>
+            <Link href="/ats-boss/try">
+              <button className="px-6 py-3 border-2 border-black bg-black text-white font-mono font-bold hover:bg-white hover:text-black transition-colors">
+                TRY HERE! →
+              </button>
+            </Link>
+          </div>
 
           <div className="space-y-4 text-sm leading-relaxed">
             <p>
               Every year, millions of qualified candidates never get past the first screening. The reason?
               Applicant Tracking Systems (ATS). Over 97% of Fortune 500 companies use ATS software like
-              Workday, Greenhouse, Lever, and Ashby to automatically filter resumes before human recruiters
+              Workday, Greenhouse, and Ashby to automatically filter resumes before human recruiters
               ever see them. These systems scan your resume for keywords, parse your formatting, and rank
               you against other candidates—often rejecting 75% of applicants within seconds, regardless of
               their qualifications.
@@ -86,7 +44,7 @@ export default function ATSBoss() {
 
             <p>
               ATS Boss helps you beat the system. Our tool mimics how real ATS platforms analyze resumes,
-              giving you an inside look at how Workday, Greenhouse, Lever, and Ashby would score your
+              giving you an inside look at how Workday, Greenhouse, and Ashby would score your
               application. Simply select your target ATS, upload your resume, paste the job description,
               and receive a comprehensive analysis showing exactly what the system sees—and what it doesn&apos;t.
               Get actionable recommendations to optimize your resume for maximum ATS compatibility while
@@ -104,68 +62,172 @@ export default function ATSBoss() {
         </div>
       </section>
 
-      {/* Analysis Form */}
-      {!data && (
-        <section className="mb-12">
+      {/* What We Replicate Section */}
+      <section className="mb-12">
+        <div className="border-2 border-black p-8 bg-white">
+          <h2 className="text-3xl font-bold mb-6">What We Replicate</h2>
+          <div className="space-y-4 text-sm leading-relaxed">
+            <p>
+              ATS Boss doesn&apos;t just scan for keywords—we replicate the actual parsing logic,
+              scoring algorithms, and ranking criteria used by each platform. Here&apos;s what makes
+              our analysis authentic:
+            </p>
+            <ul className="space-y-3 ml-6">
+              <li className="flex items-start">
+                <span className="mr-2 mt-1 text-lg">•</span>
+                <span><strong>Parsing Logic:</strong> We mimic how each ATS extracts information
+                from your resume, including section detection, data extraction, and formatting analysis.</span>
+              </li>
+              <li className="flex items-start">
+                <span className="mr-2 mt-1 text-lg">•</span>
+                <span><strong>Keyword Matching:</strong> From Workday&apos;s exact matching to Ashby&apos;s
+                AI-powered semantic understanding, we replicate each system&apos;s approach.</span>
+              </li>
+              <li className="flex items-start">
+                <span className="mr-2 mt-1 text-lg">•</span>
+                <span><strong>Scoring Algorithms:</strong> Our scoring reflects real ATS priorities—
+                keyword density, section structure, formatting compatibility, and more.</span>
+              </li>
+              <li className="flex items-start">
+                <span className="mr-2 mt-1 text-lg">•</span>
+                <span><strong>Recommendations:</strong> Get specific, actionable advice tailored to
+                each ATS system&apos;s quirks and preferences.</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      {/* Supported ATS Systems */}
+      <section className="mb-12">
+        <h2 className="text-3xl font-bold mb-8">Supported ATS Systems</h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {/* Workday Card */}
           <div className="border-2 border-black p-6 bg-white">
-            <h2 className="text-2xl font-bold font-mono mb-6">Analyze Your Resume</h2>
-
-            <div className="space-y-6">
-              <ATSSelector value={atsSystem} onChange={setAtsSystem} />
-
-              <ResumeUpload onFileSelect={handleFileSelect} maxSize={5} />
-
-              <JobDescInput value={jobDescription} onChange={setJobDescription} />
-
-              <button
-                onClick={handleAnalyze}
-                disabled={loading || !atsSystem || !resumeBase64 || jobDescription.length < 50}
-                className="w-full px-6 py-4 border-2 border-black bg-black text-white font-mono font-bold text-lg
-                         hover:bg-white hover:text-black transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {loading ? 'ANALYZING...' : 'ANALYZE RESUME'}
-              </button>
+            <div className="inline-block mb-4 px-3 py-1 border-2 border-black bg-red-600 text-white text-xs font-mono font-bold">
+              MOST STRICT
             </div>
+            <h3 className="text-2xl font-bold mb-3">Workday</h3>
+            <p className="text-sm text-gray-600 mb-4">
+              Strict exact keyword matching. Prefers DOCX format. Standard headings required.
+            </p>
+            <h4 className="font-mono text-xs font-bold mb-2">WHAT WE REPLICATE:</h4>
+            <ul className="space-y-2 text-sm text-gray-700">
+              <li className="flex items-start">
+                <span className="mr-2">→</span>
+                <span>Exact keyword matching (no synonyms)</span>
+              </li>
+              <li className="flex items-start">
+                <span className="mr-2">→</span>
+                <span>Standard section heading detection</span>
+              </li>
+              <li className="flex items-start">
+                <span className="mr-2">→</span>
+                <span>Single-column layout verification</span>
+              </li>
+              <li className="flex items-start">
+                <span className="mr-2">→</span>
+                <span>Format compatibility scoring</span>
+              </li>
+            </ul>
           </div>
-        </section>
-      )}
 
-      {/* Loading State */}
-      {loading && (
-        <div className="mb-12">
-          <LoadingState message={`Analyzing your resume with ${atsSystem.toUpperCase()} parser...`} />
-          <div className="mt-4 text-center text-sm font-mono text-gray-600">
-            {atsSystem === 'ashby'
-              ? 'AI-powered analysis may take 20-30 seconds. Please wait...'
-              : 'This may take 10-15 seconds. Please wait...'
-            }
+          {/* Greenhouse Card */}
+          <div className="border-2 border-black p-6 bg-white">
+            <div className="inline-block mb-4 px-3 py-1 border-2 border-black bg-green-600 text-white text-xs font-mono font-bold">
+              MOST POPULAR
+            </div>
+            <h3 className="text-2xl font-bold mb-3">Greenhouse</h3>
+            <p className="text-sm text-gray-600 mb-4">
+              Strong structured data extraction. Good semantic understanding. 300+ integrations.
+            </p>
+            <h4 className="font-mono text-xs font-bold mb-2">WHAT WE REPLICATE:</h4>
+            <ul className="space-y-2 text-sm text-gray-700">
+              <li className="flex items-start">
+                <span className="mr-2">→</span>
+                <span>Semantic keyword matching capability</span>
+              </li>
+              <li className="flex items-start">
+                <span className="mr-2">→</span>
+                <span>Structured data extraction patterns</span>
+              </li>
+              <li className="flex items-start">
+                <span className="mr-2">→</span>
+                <span>Integration-focused parsing</span>
+              </li>
+              <li className="flex items-start">
+                <span className="mr-2">→</span>
+                <span>Standard format handling</span>
+              </li>
+            </ul>
+          </div>
+
+{/* Ashby Card */}
+          <div className="border-2 border-black p-6 bg-white">
+            <div className="inline-block mb-4 px-3 py-1 border-2 border-black bg-purple-600 text-white text-xs font-mono font-bold">
+              CUTTING-EDGE AI
+            </div>
+            <h3 className="text-2xl font-bold mb-3">Ashby</h3>
+            <p className="text-sm text-gray-600 mb-4">
+              Cutting-edge AI matching. Best at understanding context and career transitions.
+            </p>
+            <h4 className="font-mono text-xs font-bold mb-2">WHAT WE REPLICATE:</h4>
+            <ul className="space-y-2 text-sm text-gray-700">
+              <li className="flex items-start">
+                <span className="mr-2">→</span>
+                <span>Advanced AI matching algorithms</span>
+              </li>
+              <li className="flex items-start">
+                <span className="mr-2">→</span>
+                <span>Context-aware understanding</span>
+              </li>
+              <li className="flex items-start">
+                <span className="mr-2">→</span>
+                <span>Pattern recognition across roles</span>
+              </li>
+              <li className="flex items-start">
+                <span className="mr-2">→</span>
+                <span>Quantified achievement detection</span>
+              </li>
+            </ul>
           </div>
         </div>
-      )}
+      </section>
 
-      {/* Error State */}
-      {error && !loading && (
-        <div className="mb-12">
-          <ErrorState message={error} onRetry={handleAnalyze} />
+      {/* By the Numbers */}
+      <section className="mb-12 pt-12 border-t-2 border-black">
+        <h2 className="text-3xl font-bold mb-8">By the Numbers</h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="border-2 border-black p-6 bg-white text-center">
+            <div className="text-5xl font-bold font-mono mb-2">97%</div>
+            <div className="text-sm text-gray-600">Fortune 500 companies use ATS</div>
+          </div>
+          <div className="border-2 border-black p-6 bg-white text-center">
+            <div className="text-5xl font-bold font-mono mb-2">75%</div>
+            <div className="text-sm text-gray-600">Resumes rejected by ATS within seconds</div>
+          </div>
+          <div className="border-2 border-black p-6 bg-white text-center">
+            <div className="text-5xl font-bold font-mono mb-2">3</div>
+            <div className="text-sm text-gray-600">Major ATS systems we replicate</div>
+          </div>
         </div>
-      )}
+      </section>
 
-      {/* Results */}
-      {data && !loading && (
-        <section className="mb-12">
-          <AnalysisResults results={data.data} atsSystem={atsSystem} />
-
-          <div className="mt-6 flex gap-4">
-            <button
-              onClick={handleReset}
-              className="flex-1 px-6 py-3 border-2 border-black bg-white text-black font-mono font-bold
-                       hover:bg-black hover:text-white transition-colors"
-            >
-              ANALYZE ANOTHER RESUME
+      {/* Final CTA */}
+      <section className="mb-12">
+        <div className="border-2 border-black p-12 bg-black text-white text-center">
+          <h2 className="text-3xl font-bold mb-4">Stop Guessing. Start Optimizing.</h2>
+          <p className="text-gray-300 mb-8 max-w-2xl mx-auto">
+            Upload your resume and get instant feedback from three major ATS systems.
+            Know exactly how the robots see you.
+          </p>
+          <Link href="/ats-boss/try">
+            <button className="px-8 py-4 border-2 border-white bg-white text-black font-mono font-bold text-lg hover:bg-transparent hover:text-white transition-colors">
+              ANALYZE YOUR RESUME NOW →
             </button>
-          </div>
-        </section>
-      )}
+          </Link>
+        </div>
+      </section>
     </AppLayout>
   );
 }

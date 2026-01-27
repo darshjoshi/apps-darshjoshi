@@ -1,7 +1,12 @@
-import type { Recommendation } from '@/lib/api/apps/ats-boss';
+import type { Recommendation, DeepRecommendation } from '@/lib/api/apps/ats-boss';
+
+// Type guard to check if it's an old-style recommendation
+function isOldRecommendation(rec: Recommendation | DeepRecommendation): rec is Recommendation {
+  return 'priority' in rec && 'issue' in rec && 'suggestion' in rec;
+}
 
 interface RecommendationListProps {
-  recommendations: Recommendation[];
+  recommendations: (Recommendation | DeepRecommendation)[];
 }
 
 export function RecommendationList({ recommendations }: RecommendationListProps) {
@@ -44,16 +49,14 @@ export function RecommendationList({ recommendations }: RecommendationListProps)
     }
   };
 
-  // Group by priority
-  const grouped = recommendations.reduce((acc, rec) => {
-    if (!acc[rec.priority]) {
-      acc[rec.priority] = [];
-    }
-    acc[rec.priority].push(rec);
-    return {};
-  }, {} as Record<string, Recommendation[]>);
-
-  const priorityOrder: Array<'high' | 'medium' | 'low'> = ['high', 'medium', 'low'];
+  const getCategoryColor = (category: string) => {
+    if (category.includes('keyword')) return 'border-blue-600 bg-blue-50';
+    if (category.includes('format')) return 'border-purple-600 bg-purple-50';
+    if (category.includes('structure')) return 'border-orange-600 bg-orange-50';
+    if (category.includes('achievement')) return 'border-green-600 bg-green-50';
+    if (category.includes('skill')) return 'border-cyan-600 bg-cyan-50';
+    return 'border-gray-600 bg-gray-50';
+  };
 
   if (recommendations.length === 0) {
     return (
@@ -63,44 +66,88 @@ export function RecommendationList({ recommendations }: RecommendationListProps)
     );
   }
 
-  return (
-    <div className="space-y-6">
-      {priorityOrder.map((priority) => {
-        const items = recommendations.filter(r => r.priority === priority);
-        if (items.length === 0) return null;
+  // Check if we have old-style or new-style recommendations
+  const hasOldStyle = recommendations.some(r => isOldRecommendation(r));
 
-        return (
-          <div key={priority}>
-            <h4 className="text-sm font-mono font-semibold mb-3 flex items-center gap-2">
-              <span>{getPriorityIcon(priority)}</span>
-              <span>{getPriorityLabel(priority)}</span>
-              <span className="text-gray-600">({items.length})</span>
-            </h4>
-            <div className="space-y-3">
-              {items.map((rec, idx) => (
-                <div
-                  key={idx}
-                  className={`border-2 p-4 ${getPriorityColor(rec.priority)}`}
-                >
-                  <div className="space-y-2">
-                    <div className="flex items-start gap-2">
-                      <span className="text-xs font-mono font-semibold px-2 py-1 border border-black bg-white">
-                        {rec.category.toUpperCase()}
-                      </span>
-                    </div>
-                    <div className="text-sm font-mono font-semibold">
-                      Issue: {rec.issue}
-                    </div>
-                    <div className="text-sm font-mono text-gray-700">
-                      → {rec.suggestion}
+  if (hasOldStyle) {
+    // Old-style recommendations grouped by priority
+    const oldRecs = recommendations.filter(isOldRecommendation);
+    const priorityOrder: Array<'high' | 'medium' | 'low'> = ['high', 'medium', 'low'];
+
+    return (
+      <div className="space-y-6">
+        {priorityOrder.map((priority) => {
+          const items = oldRecs.filter(r => r.priority === priority);
+          if (items.length === 0) return null;
+
+          return (
+            <div key={priority}>
+              <h4 className="text-sm font-mono font-semibold mb-3 flex items-center gap-2">
+                <span>{getPriorityIcon(priority)}</span>
+                <span>{getPriorityLabel(priority)}</span>
+                <span className="text-gray-600">({items.length})</span>
+              </h4>
+              <div className="space-y-3">
+                {items.map((rec, idx) => (
+                  <div
+                    key={idx}
+                    className={`border-2 p-4 ${getPriorityColor(rec.priority)}`}
+                  >
+                    <div className="space-y-2">
+                      <div className="flex items-start gap-2">
+                        <span className="text-xs font-mono font-semibold px-2 py-1 border border-black bg-white">
+                          {rec.category.toUpperCase()}
+                        </span>
+                      </div>
+                      <div className="text-sm font-mono font-semibold">
+                        Issue: {rec.issue}
+                      </div>
+                      <div className="text-sm font-mono text-gray-700">
+                        → {rec.suggestion}
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    );
+  }
+
+  // New-style deep recommendations from GPT-5-mini
+  const deepRecs = recommendations as DeepRecommendation[];
+
+  return (
+    <div className="space-y-4">
+      {deepRecs.map((rec, idx) => (
+        <div
+          key={idx}
+          className={`border-2 p-4 ${getCategoryColor(rec.category)}`}
+        >
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-mono font-semibold px-2 py-1 border border-black bg-white">
+                {rec.category.toUpperCase()}
+              </span>
+              {rec.expected_impact && (
+                <span className="text-xs font-mono font-bold text-green-700 bg-green-100 px-2 py-1">
+                  {rec.expected_impact}
+                </span>
+              )}
+            </div>
+            <div className="text-sm font-mono">
+              <span className="text-gray-600">Current: </span>
+              <span className="font-semibold">{rec.current_state}</span>
+            </div>
+            <div className="text-sm font-mono text-green-700 bg-green-50 p-2 border border-green-300">
+              <span className="font-bold">→ Fix: </span>
+              {rec.recommended_change}
             </div>
           </div>
-        );
-      })}
+        </div>
+      ))}
     </div>
   );
 }

@@ -9,7 +9,7 @@ const api: AxiosInstance = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  timeout: 30000, // 30 seconds for AI-powered analysis (Ashby needs more time)
+  timeout: 120000, // 2 minutes for GPT-5-mini deep reasoning analysis
 });
 
 // Request interceptor

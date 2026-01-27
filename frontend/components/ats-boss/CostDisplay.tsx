@@ -97,6 +97,26 @@ export function CostDisplay({ usage }: CostDisplayProps) {
                 </div>
             </div>
 
+            {/* Reasoning tokens breakdown (GPT-5-mini only) */}
+            {usage.reasoning_tokens && usage.reasoning_tokens > 0 && (
+                <div className="border-2 border-blue-600 bg-blue-50 p-4 mb-4">
+                    <div className="text-xs font-mono font-bold text-blue-900 uppercase mb-2">🧠 GPT-5-Mini Deep Reasoning</div>
+                    <div className="grid grid-cols-2 gap-3">
+                        <div className="bg-white p-2 border border-blue-300">
+                            <div className="text-xs font-mono text-gray-600">Reasoning (Thinking)</div>
+                            <div className="text-lg font-bold font-mono text-blue-700">{formatNumber(usage.reasoning_tokens)}</div>
+                        </div>
+                        <div className="bg-white p-2 border border-blue-300">
+                            <div className="text-xs font-mono text-gray-600">Actual Output</div>
+                            <div className="text-lg font-bold font-mono text-green-700">{formatNumber(usage.actual_output_tokens || (usage.output_tokens - usage.reasoning_tokens))}</div>
+                        </div>
+                    </div>
+                    <div className="text-xs font-mono text-gray-600 mt-2 italic">
+                        GPT-5-mini spent {Math.round((usage.reasoning_tokens / usage.output_tokens) * 100)}% of output tokens on deep reasoning before generating the final analysis.
+                    </div>
+                </div>
+            )}
+
             {/* Total cost highlight */}
             <div className="border-2 border-black bg-black text-white p-4 mb-4">
                 <div className="flex items-center justify-between">
