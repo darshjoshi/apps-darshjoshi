@@ -120,6 +120,13 @@ Execute Greenhouse ATS parsing logic on this resume:
 
 ---
 
+**CRITICAL FORMATTING RULES:**
+- ALL score values MUST be INTEGERS (whole numbers) between 0-100
+- NEVER use decimals like 50.45 or 36.36 - always round to nearest integer
+- Examples: Use 50, not 50.45; use 36, not 36.36; use 75, not 75.0
+
+---
+
 Return JSON:
 {{
   "structured_data": {{
