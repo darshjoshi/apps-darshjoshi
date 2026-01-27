@@ -1,103 +1,96 @@
 // Workday ATS-Optimized Resume Template
 // Single column, no tables/graphics, standard headings, OCR-friendly
+// Optimized for single page output
 
 #set page(
   paper: "us-letter",
-  margin: (x: 0.5in, y: 0.5in),
+  margin: (x: 0.5in, y: 0.4in),
 )
 
 #set text(
   font: "Arial",
-  size: 10pt,
+  size: 9.5pt,
   hyphenate: false,
 )
 
 #set par(
   justify: false,
-  leading: 0.65em,
+  leading: 0.5em,
 )
 
 // Contact Section - Standard format for Workday parsing
 #align(center)[
-  #text(size: 16pt, weight: "bold")[#name]
-
+  #text(size: 14pt, weight: "bold")[#name]
   #v(2pt)
-
-  #text(size: 10pt)[#email #h(1em) #phone #h(1em) #location]
-
+  #text(size: 9pt)[#email #h(8pt) | #h(8pt) #phone #h(8pt) | #h(8pt) #location]
   #if linkedin != none [
-    #v(2pt)
-    #text(size: 10pt)[#linkedin]
+    #v(1pt)
+    #text(size: 9pt)[#linkedin]
   ]
 ]
 
-#v(8pt)
+#v(6pt)
 
 // Summary Section
 #if summary != none [
-  #text(weight: "bold", size: 11pt)[SUMMARY]
+  #text(weight: "bold", size: 10pt)[SUMMARY]
   #line(length: 100%, stroke: 0.5pt)
-  #v(4pt)
-  #summary
-  #v(8pt)
-]
-
-// Work Experience Section - Standard heading for Workday
-#text(weight: "bold", size: 11pt)[WORK EXPERIENCE]
-#line(length: 100%, stroke: 0.5pt)
-#v(4pt)
-
-#for exp in experience [
-  #text(weight: "bold")[#exp.title] #h(1fr) #text(style: "italic")[#exp.start_date - #exp.end_date]
-
-  #text(style: "italic")[#exp.company] #if exp.location != none [#h(1em) #exp.location]
-
   #v(2pt)
-
-  #for bullet in exp.bullets [
-    • #bullet
-
-  ]
-
+  #text(size: 9pt)[#summary]
   #v(6pt)
 ]
 
-// Education Section - Standard heading for Workday
-#text(weight: "bold", size: 11pt)[EDUCATION]
+// Work Experience Section - Standard heading for Workday
+#text(weight: "bold", size: 10pt)[WORK EXPERIENCE]
 #line(length: 100%, stroke: 0.5pt)
-#v(4pt)
+#v(2pt)
 
-#for edu in education [
-  #text(weight: "bold")[#edu.degree]
-  #if edu.graduation_date != none [#h(1fr) #edu.graduation_date]
-
-  #text(style: "italic")[#edu.institution]
-  #if edu.location != none [#h(1em) #edu.location]
-
-  #if edu.gpa != none [
-
-    GPA: #edu.gpa
+#for exp in experience [
+  #grid(
+    columns: (1fr, auto),
+    gutter: 4pt,
+    [#text(weight: "bold", size: 9.5pt)[#exp.title] #if exp.location != none [#text(size: 9pt, style: "italic")[ — #exp.company, #exp.location]] #if exp.location == none [#text(size: 9pt, style: "italic")[ — #exp.company]]],
+    [#text(size: 9pt)[#exp.start_date – #exp.end_date]]
+  )
+  #v(1pt)
+  #for bullet in exp.bullets [
+    #text(size: 9pt)[• #bullet]
+    #v(0.5pt)
   ]
-
   #v(4pt)
 ]
 
-// Skills Section - Comma-separated for easy parsing
-#v(4pt)
-#text(weight: "bold", size: 11pt)[SKILLS]
+// Education Section - Standard heading for Workday
+#text(weight: "bold", size: 10pt)[EDUCATION]
 #line(length: 100%, stroke: 0.5pt)
-#v(4pt)
+#v(2pt)
+
+#for edu in education [
+  #grid(
+    columns: (1fr, auto),
+    gutter: 4pt,
+    [#text(weight: "bold", size: 9.5pt)[#edu.degree] #text(size: 9pt, style: "italic")[ — #edu.institution]#if edu.location != none [#text(size: 9pt)[, #edu.location]] #if edu.gpa != none [#text(size: 9pt)[ | GPA: #edu.gpa]]],
+    [#if edu.graduation_date != none [#text(size: 9pt)[#edu.graduation_date]]]
+  )
+  #v(2pt)
+]
+
+// Skills Section - Comma-separated for easy parsing
+#v(2pt)
+#text(weight: "bold", size: 10pt)[SKILLS]
+#line(length: 100%, stroke: 0.5pt)
+#v(2pt)
 
 #if skills.technical.len() > 0 [
-  #text(weight: "bold")[Technical:] #skills.technical.join(", ")
-
+  #text(size: 9pt)[#text(weight: "bold")[Technical:] #skills.technical.join(", ")]
+  #v(1pt)
 ]
 
 #if skills.tools.len() > 0 [
-  #text(weight: "bold")[Tools:] #skills.tools.join(", ")
-
+  #text(size: 9pt)[#text(weight: "bold")[Tools:] #skills.tools.join(", ")]
+  #v(1pt)
 ]
 
 #if skills.soft.len() > 0 [
-  #text(weight: "bold")[Other:] #skills.soft.join(", ")
+  #text(size: 9pt)[#text(weight: "bold")[Other:] #skills.soft.join(", ")]
 ]

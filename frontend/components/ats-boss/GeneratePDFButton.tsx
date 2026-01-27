@@ -76,15 +76,22 @@ export function GeneratePDFButton({
   }, [pdfUrl]);
 
   const handleDownload = useCallback(() => {
-    if (pdfUrl && pdfBlob) {
+    if (pdfBlob) {
+      // Create a fresh blob URL specifically for download
+      const downloadUrl = window.URL.createObjectURL(pdfBlob);
       const link = document.createElement('a');
-      link.href = pdfUrl;
+      link.href = downloadUrl;
       link.download = `resume_optimized_${atsSystem}.pdf`;
+      link.style.display = 'none';
       document.body.appendChild(link);
       link.click();
-      document.body.removeChild(link);
+      // Clean up after a short delay to ensure download starts
+      setTimeout(() => {
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(downloadUrl);
+      }, 100);
     }
-  }, [pdfUrl, pdfBlob, atsSystem]);
+  }, [pdfBlob, atsSystem]);
 
   const handleRegenerate = useCallback(() => {
     if (pdfUrl) {
