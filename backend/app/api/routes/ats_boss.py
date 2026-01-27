@@ -4,6 +4,7 @@ Endpoints for resume analysis and ATS optimization
 """
 
 from fastapi import APIRouter, HTTPException, Depends
+from fastapi.responses import StreamingResponse
 from app.dependencies import verify_api_key
 from app.schemas.ats_schemas import (
     AnalyzeRequest,
@@ -11,8 +12,12 @@ from app.schemas.ats_schemas import (
     AnalysisResponse,
     HealthCheckResponse
 )
+from app.schemas.resume_schemas import GeneratePDFRequest
 from app.services.ats_analyzer import analyze_resume
+from app.services.resume_generator import resume_generator
+from app.services.token_tracker import TokenTracker
 from typing import Dict, Any
+import io
 
 router = APIRouter(
     prefix="/ats-boss",
@@ -129,3 +134,61 @@ async def get_ats_systems() -> Dict[str, Any]:
             ]
         }
     }
+
+
+@router.post("/generate-pdf")
+async def generate_optimized_pdf(request: GeneratePDFRequest):
+    """
+    Generate an ATS-optimized PDF resume
+
+    Takes analysis results and generates a new PDF
+    formatted specifically for the target ATS system.
+
+    Parameters:
+    - **ats_system**: Target ATS to optimize for (workday, greenhouse, ashby)
+    - **resume_text**: Extracted text from original resume PDF
+    - **job_description**: Full job description text
+    - **analysis_result**: Full analysis data from /analyze endpoint
+
+    Returns:
+    - PDF file as streaming response
+    """
+
+    try:
+        # Create token tracker for this request
+        tracker = TokenTracker()
+
+        # Generate the optimized PDF
+        pdf_bytes = await resume_generator.generate_optimized_resume(
+            resume_text=request.resume_text,
+            job_description=request.job_description,
+            analysis_result=request.analysis_result,
+            ats_system=request.ats_system,
+            tracker=tracker
+        )
+
+        # Create filename
+        filename = f"resume_optimized_{request.ats_system}.pdf"
+
+        # Return as streaming response
+        return StreamingResponse(
+            io.BytesIO(pdf_bytes),
+            media_type="application/pdf",
+            headers={
+                "Content-Disposition": f'attachment; filename="{filename}"',
+                "Content-Length": str(len(pdf_bytes))
+            }
+        )
+
+    except ValueError as e:
+        # Input validation errors
+        raise HTTPException(
+            status_code=400,
+            detail=str(e)
+        )
+    except Exception as e:
+        # Other errors (OpenAI API, Typst compilation, etc.)
+        raise HTTPException(
+            status_code=500,
+            detail=f"PDF generation failed: {str(e)}"
+        )

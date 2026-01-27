@@ -1,5 +1,6 @@
 import { BaseAPI } from '../base';
 import { APIResponse } from '../types';
+import api from '../client';
 
 // ATS Boss specific types
 export interface ATSSystem {
@@ -120,7 +121,7 @@ export interface AnalysisResult {
   keyword_analysis: KeywordAnalysis;
   recommendations: Recommendation[] | DeepRecommendation[];
   usage?: UsageInfo;
-  
+
   // NEW: Deep analysis fields from GPT-5-mini
   scoring?: Scoring;
   outcome?: Outcome;
@@ -128,7 +129,7 @@ export interface AnalysisResult {
   section_detection?: SectionDetection;
   formatting_analysis?: FormattingAnalysis;
   reasoning_summary?: string;
-  
+
   // ATS-specific deep data
   structured_data?: Record<string, unknown>;  // Greenhouse
   achievements?: Array<{
@@ -155,15 +156,23 @@ export interface AnalysisResult {
     progression_score: number;
   };  // Ashby
   standout_factors?: string[];  // Ashby
-  
+
   meta?: {
     ats_system: string;
     resume_length: number;
     jd_length: number;
+    resume_text?: string;  // Included for PDF generation
     parsing_method: string;
     analysis_model: string;
   };
   _analysis_metadata?: AnalysisMetadata;
+}
+
+export interface GeneratePDFRequest {
+  ats_system: 'workday' | 'greenhouse' | 'ashby';
+  resume_text: string;
+  job_description: string;
+  analysis_result: AnalysisResult;
 }
 
 export interface AnalysisResponse {
@@ -197,6 +206,22 @@ class ATSBossAPI extends BaseAPI {
    */
   analyzeResume = (data: AnalyzeRequest) =>
     this.call<AnalysisResponse>('/analyze', 'POST', data);
+
+  /**
+   * Generate ATS-optimized PDF resume
+   * Returns a Blob that can be downloaded
+   */
+  generatePDF = async (data: GeneratePDFRequest): Promise<Blob> => {
+    const response = await api.post(
+      `${this.endpoint}/generate-pdf`,
+      data,
+      {
+        responseType: 'blob',
+        timeout: 120000, // 2 minutes for PDF generation
+      }
+    );
+    return response.data;
+  };
 }
 
 export const atsBossAPI = new ATSBossAPI();

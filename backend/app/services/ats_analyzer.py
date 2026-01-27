@@ -147,6 +147,7 @@ async def analyze_resume(
             "ats_system": ats_system_lower,
             "resume_length": len(resume_text),
             "jd_length": len(job_description),
+            "resume_text": resume_text,  # Include for PDF generation
             "parsing_method": "gpt5_mini_deep",
             "analysis_model": "gpt-5-mini"
         },

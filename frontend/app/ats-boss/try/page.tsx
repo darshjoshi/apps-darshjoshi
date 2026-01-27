@@ -8,6 +8,7 @@ import { ATSSelector } from '@/components/ats-boss/ATSSelector';
 import { ResumeUpload } from '@/components/ats-boss/ResumeUpload';
 import { JobDescInput } from '@/components/ats-boss/JobDescInput';
 import { AnalysisResults } from '@/components/ats-boss/AnalysisResults';
+import { GeneratePDFButton } from '@/components/ats-boss/GeneratePDFButton';
 import { useAPI } from '@/lib/hooks/useAPI';
 import { atsBossAPI, type AnalyzeRequest, type AnalysisResponse } from '@/lib/api/apps/ats-boss';
 
@@ -107,7 +108,15 @@ export default function ATSBossTry() {
         <section className="mb-12">
           <AnalysisResults results={data.data} atsSystem={atsSystem} />
 
-          <div className="mt-6 flex gap-4">
+          <div className="mt-6 flex flex-col sm:flex-row gap-4">
+            <div className="flex-1">
+              <GeneratePDFButton
+                atsSystem={atsSystem}
+                resumeText={data.data.meta?.resume_text || ''}
+                jobDescription={jobDescription}
+                analysisResult={data.data}
+              />
+            </div>
             <button
               onClick={handleReset}
               className="flex-1 px-6 py-3 border-2 border-black bg-white text-black font-mono font-bold
