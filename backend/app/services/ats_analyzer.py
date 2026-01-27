@@ -112,7 +112,6 @@ async def analyze_resume(
                 "keyword_match_rate": raw_lever_results.get("keyword_match_rate", 0),
                 "ats_compatible": raw_lever_results.get("ats_compatible", False),
                 "recommendations": raw_lever_results.get("recommendations", []),
-                "ats_specific_tips": raw_lever_results.get("ats_specific_tips", []),
                 # Unwrap nested objects
                 **raw_lever_results.get("parsing_results", {}),
                 **raw_lever_results.get("keyword_analysis", {})
