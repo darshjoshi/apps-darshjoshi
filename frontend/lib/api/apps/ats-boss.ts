@@ -14,7 +14,7 @@ export interface ATSSystemsResponse {
 }
 
 export interface AnalyzeRequest {
-  ats_system: 'workday' | 'greenhouse' | 'lever' | 'ashby';
+  ats_system: 'workday' | 'greenhouse' | 'ashby';
   resume_file: string; // base64 encoded PDF
   job_description: string;
 }

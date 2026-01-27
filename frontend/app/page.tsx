@@ -14,7 +14,7 @@ const apps: App[] = [
   {
     id: 'ats-boss',
     name: 'ATS Boss',
-    description: 'Beat the ATS robots. Analyze and optimize your resume for Workday, Greenhouse, Lever, and Ashby systems.',
+    description: 'Beat the ATS robots. Analyze and optimize your resume for Workday, Greenhouse, and Ashby systems.',
     href: '/ats-boss',
     status: 'active',
   },

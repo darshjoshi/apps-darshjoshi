@@ -36,7 +36,7 @@ export default function ATSBossTry() {
     }
 
     const request: AnalyzeRequest = {
-      ats_system: atsSystem as 'workday' | 'greenhouse' | 'lever' | 'ashby',
+      ats_system: atsSystem as 'workday' | 'greenhouse' | 'ashby',
       resume_file: resumeBase64,
       job_description: jobDescription.trim(),
     };
@@ -84,10 +84,7 @@ export default function ATSBossTry() {
         <div className="mb-12">
           <LoadingState message={`Deep analysis with GPT-5-mini for ${atsSystem.toUpperCase()}...`} />
           <div className="mt-4 text-center text-sm font-mono text-gray-600">
-            {atsSystem === 'lever'
-              ? 'Lever analysis takes 10-15 seconds. Please wait...'
-              : 'GPT-5-mini deep reasoning analysis takes 30-60 seconds. Please be patient...'
-            }
+            GPT-5-mini deep reasoning analysis takes 30-60 seconds. Please be patient...
           </div>
           <div className="mt-2 text-center text-xs font-mono text-blue-600">
             🧠 AI is thinking deeply to replicate exact ATS behavior

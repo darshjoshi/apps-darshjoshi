@@ -32,7 +32,7 @@ async def analyze_resume_endpoint(request: AnalyzeRequest) -> Dict[str, Any]:
     3. Returns ATS compatibility score, keyword analysis, and recommendations
 
     Parameters:
-    - **ats_system**: ATS to mimic (workday, greenhouse, lever, ashby)
+    - **ats_system**: ATS to mimic (workday, greenhouse, ashby)
     - **resume_file**: Base64 encoded PDF resume
     - **job_description**: Full job description text
 
@@ -113,17 +113,6 @@ async def get_ats_systems() -> Dict[str, Any]:
                         "Structured data extraction",
                         "Integration-focused",
                         "Handles standard formats well"
-                    ]
-                },
-                {
-                    "id": "lever",
-                    "name": "Lever",
-                    "description": "CRM-style with advanced NLP. Focus on candidate journey and long-term pipeline.",
-                    "characteristics": [
-                        "Advanced semantic understanding",
-                        "Skill inference capability",
-                        "Candidate relationship focus",
-                        "Career progression analysis"
                     ]
                 },
                 {
