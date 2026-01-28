@@ -18,6 +18,13 @@ const apps: App[] = [
     href: '/ats-boss',
     status: 'active',
   },
+  {
+    id: 'job-finder',
+    name: 'Job Search X-Ray',
+    description: 'Generate powerful Google search queries to find jobs directly on ATS platforms before they hit job boards.',
+    href: '/job-finder',
+    status: 'active',
+  },
 ];
 
 export default function Home() {
@@ -110,7 +117,7 @@ export default function Home() {
             ))}
 
             {/* Placeholder Cards */}
-            {[...Array(5)].map((_, i) => (
+            {[...Array(4)].map((_, i) => (
               <div
                 key={`placeholder-${i}`}
                 className="h-full bg-white border-2 border-gray-200 p-8 relative overflow-hidden"
@@ -120,7 +127,7 @@ export default function Home() {
                     COMING SOON
                   </div>
                   <h3 className="text-2xl font-bold mb-4 text-gray-400">
-                    App {i + 2}
+                    App {i + 3}
                   </h3>
                   <p className="text-gray-400 leading-relaxed mb-8">
                     New application under development. Stay tuned for updates.
@@ -146,7 +153,7 @@ export default function Home() {
               <div className="text-gray-600 font-mono text-sm font-bold mt-2">ACTIVE APPLICATIONS</div>
             </div>
             <div>
-              <div className="text-6xl font-bold mb-3 text-gray-400">5</div>
+              <div className="text-6xl font-bold mb-3 text-gray-400">4</div>
               <div className="text-gray-600 font-mono text-sm font-bold mt-2">IN DEVELOPMENT</div>
             </div>
             <div>
