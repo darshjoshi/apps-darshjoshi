@@ -98,7 +98,72 @@ curl -X POST -H "X-API-Key: your-api-key-here" \
 
 ## Adding a New App
 
-Follow this pattern to add a new app to the platform:
+Follow this pattern to add a new app to the platform. Apps can be **full-stack** (with backend API) or **frontend-only** (no backend needed).
+
+### Frontend-Only Apps (Recommended for Simple Tools)
+For apps that don't need backend processing (like Job Search X-Ray):
+
+**1. Create Landing Page** - `frontend/app/{app-name}/page.tsx`:
+- White paper format explaining what the app does
+- "Why it works" section with benefits
+- "How it works" step-by-step breakdown
+- Examples and use cases
+- "TRY IT NOW" button linking to `/app-name/try`
+
+**2. Create Interactive Tool** - `frontend/app/{app-name}/try/page.tsx`:
+- Input form using custom UI components (NO system selectors)
+- Client-side logic for processing/generation
+- Results display with copy-to-clipboard functionality
+- Reset/New action buttons
+- Pro tips section
+
+**3. Metadata Layout** - `frontend/app/{app-name}/layout.tsx`:
+```typescript
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "App Name | Apps Dashboard",
+  description: "Brief description of your app",
+  openGraph: {
+    type: 'website',
+    title: 'App Name | Apps Dashboard',
+    description: 'Brief description of your app',
+    url: 'https://apps.darshjoshi.com/{app-name}',
+    images: [
+      {
+        url: '/api/og?title=App Name&description=Brief description',
+        width: 1200,
+        height: 630,
+        alt: 'App Name - Apps Dashboard',
+        type: 'image/png',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'App Name | Apps Dashboard',
+    description: 'Brief description of your app',
+    creator: '@darshjoshii',
+    images: ['/api/og?title=App Name&description=Brief description'],
+  },
+};
+
+export default function AppLayout({ children }: { children: React.ReactNode }) {
+  return children;
+}
+```
+
+**4. Update Homepage** - Add to `frontend/app/page.tsx` apps array
+
+**When to Use Frontend-Only:**
+- Query/string generators
+- Calculators and converters
+- Reference tools
+- Educational/documentation apps
+- Any app where logic can run entirely in the browser
+
+### Full-Stack Apps (With Backend API)
+For apps that need server-side processing, AI inference, or database access:
 
 ### 1. Backend Route (FastAPI)
 Create `backend/app/api/routes/app{N}.py`:
@@ -121,7 +186,7 @@ app.include_router(app{N}.router, prefix=settings.API_V1_STR)
 ```
 
 ### 2. Frontend Route (Next.js)
-Create `frontend/app/app{N}/page.tsx` following the existing pattern in example-app.
+Create `frontend/app/app{N}/page.tsx` following the existing pattern in ats-boss.
 
 **Add Layout with Metadata for Link Previews:**
 Create `frontend/app/app{N}/layout.tsx`:
@@ -173,9 +238,19 @@ export const app{N}API = {
 Add app card to `frontend/app/page.tsx` in the `apps` array.
 
 ### 5. Use Reusable Components
+- **AppLayout Component**: Import `AppLayout` from `@/components/layouts/AppLayout` for consistent page structure
+  - Provides grid background, header with app name, and footer
+  - Supports back button to app landing page
+  - Example: `<AppLayout appName="APP NAME" backUrl="/app-name">`
 - **Logo Component**: Import `Logo` from `@/components/ui/logo` for consistent branding
 - **Button Component**: Import `Button` from `@/components/ui/button` for styled buttons
 - **Design Classes**: Use `.grid-bg`, `.border-hover`, `.glow-on-hover` for consistent styling
+
+### 6. Two-Page Pattern (Landing + Tool)
+Most apps use a two-page structure:
+- **Landing Page** (`/app-name/page.tsx`): White paper explaining the app, wrapped in AppLayout
+- **Interactive Tool** (`/app-name/try/page.tsx`): The actual tool, wrapped in AppLayout with backUrl
+- This separates education from action, improving user understanding and conversion
 
 ## Branding & UI Components
 
@@ -244,6 +319,206 @@ The platform generates dynamic social media preview images for all pages:
 - **Grid Background**: Subtle 50px grid pattern (`.grid-bg` class)
 - **Borders**: 2px solid black borders for components
 - **Corner Accents**: Brutalist design elements on cards
+
+### UI Component Standards
+
+**CRITICAL: No System Selectors Policy**
+- **NEVER** use native `<select>` dropdowns anywhere in the application
+- **NEVER** use system-native date pickers, color pickers, or other system UI elements
+- All selection interfaces must use custom-built UI components that match the brutalist design system
+
+**Custom Selector Patterns:**
+
+1. **Button Grid for Single Selection** (replaces `<select>`):
+```tsx
+const options = [
+  { value: 'option1', label: 'Option 1' },
+  { value: 'option2', label: 'Option 2' },
+];
+
+<div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+  {options.map((option) => (
+    <button
+      key={option.value}
+      onClick={() => setValue(option.value)}
+      className={`px-4 py-3 border-2 font-mono text-sm font-bold transition-colors ${
+        value === option.value
+          ? 'border-black bg-black text-white'
+          : 'border-gray-300 bg-white text-black hover:border-black'
+      }`}
+    >
+      {option.label}
+    </button>
+  ))}
+</div>
+```
+
+2. **Checkbox Cards for Multi-Selection**:
+```tsx
+<label
+  className={`flex items-center gap-2 px-4 py-3 border-2 cursor-pointer transition-colors ${
+    selected.includes(item)
+      ? 'border-black bg-black text-white'
+      : 'border-gray-300 bg-white hover:border-black'
+  }`}
+>
+  <input type="checkbox" checked={selected.includes(item)} className="w-4 h-4" />
+  <span className="text-sm font-mono font-bold uppercase">{item}</span>
+</label>
+```
+
+3. **Toggle/Checkbox for Binary Choices**:
+```tsx
+<label className="flex items-center gap-3 px-4 py-3 border-2 border-black bg-white hover:bg-gray-50 cursor-pointer">
+  <input type="checkbox" checked={value} className="w-5 h-5" />
+  <span className="text-sm font-mono font-bold">OPTION NAME</span>
+</label>
+```
+
+**Why This Matters:**
+- Maintains consistent brutalist design language across all interactions
+- Ensures visual consistency regardless of user's OS or browser
+- Provides better control over styling and user experience
+- Matches the high-contrast black & white theme perfectly
+
+**Examples in Production:**
+- **ATS Boss** (`/ats-boss/try`) - ATS system selector uses custom UI
+- **Job Search X-Ray** (`/job-finder/try`) - Experience level and date range use button grids
+
+## Current Applications
+
+### App 1: ATS Boss
+- **Route**: `/ats-boss`
+- **Description**: Resume analysis and optimization for ATS systems (Workday, Greenhouse, Ashby)
+- **Features**:
+  - Phase 1: Deep ATS simulation using GPT-5-mini reasoning
+  - Phase 2: Optimized PDF generation with ReportLab
+  - Custom ATS selector UI component
+  - Resume upload and job description input
+  - Detailed scoring breakdown and recommendations
+
+### App 2: Job Search X-Ray
+- **Route**: `/job-finder`
+- **Description**: Google search query generator for job hunting using X-Ray search techniques
+- **Features**:
+  - Generates 5-10 optimized Google search queries
+  - Targets ATS platforms (Greenhouse, Lever, Workday, Taleo, Jobvite)
+  - Custom button grids for experience level and date range selection
+  - Boolean logic combinations (AND, OR, exclusions)
+  - Location filtering with remote toggle
+  - Company-specific and skills-based queries
+  - Copy-to-clipboard and direct Google search links
+- **Frontend-Only**: No backend API needed, uses deterministic query generation
+- **Landing Page Pattern**: White paper (`/job-finder`) + Interactive tool (`/job-finder/try`)
+
+**Query Generation Logic:**
+The app generates multiple query variations based on user input:
+1. **Recent Multi-Platform** - Searches all selected ATS platforms
+2. **Skills-Focused** - Prioritizes user-specified skills (if provided)
+3. **Platform-Specific** - Individual queries for top 2 selected platforms
+4. **Location-Focused** - Emphasizes geographic preferences
+5. **Company-Specific** - Targets specific companies (if provided)
+6. **Ultra-Fresh** - Today-only postings
+7. **Broad Search** - No ATS filter for maximum coverage
+8. **Remote-First** - Remote opportunities alternative
+
+**Experience Level Auto-Exclusions:**
+- Entry/Junior → Excludes: Senior, Lead, Staff, Principal, Director
+- Mid Level → Excludes: Junior, Entry, Director, VP
+- Senior/Lead → No auto-exclusions
+- Staff/Principal → No auto-exclusions
+
+**Example Generated Query:**
+```
+(site:greenhouse.io OR site:boards.greenhouse.io) "AI Engineer" -"Senior" -"Lead" -"Staff" -"Principal" -"Director" after:2026-01-20
+```
+
+This pattern demonstrates:
+- Platform URL targeting with `site:` operator
+- Exact phrase matching with quotes
+- Exclusion filters with `-` operator
+- Date filtering with `after:` operator
+
+## App Development Best Practices
+
+### Choosing Frontend-Only vs Full-Stack
+
+**Use Frontend-Only When:**
+- Logic is deterministic (string manipulation, calculations, formatting)
+- No sensitive data processing required
+- No external API calls needed (or user provides their own API keys)
+- Results can be computed instantly in the browser
+- No database or persistent storage needed
+
+**Use Full-Stack When:**
+- AI inference or LLM calls required
+- Heavy computation that would slow browser
+- Sensitive API keys must be kept server-side
+- Database access needed
+- File processing (PDF, images, etc.)
+- Rate limiting or usage tracking required
+
+### Landing Page Structure (White Paper Pattern)
+
+All apps should follow this landing page structure:
+
+1. **Hero Section**
+   - Status badge (BEAT THE ROBOTS, FIND JOBS LIKE A RECRUITER, etc.)
+   - App title with underline border
+   - "TRY HERE" or "TRY IT NOW" button linking to /try page
+   - 3-4 paragraph explanation of the problem and solution
+
+2. **How It Works**
+   - Step-by-step breakdown (3 steps ideal)
+   - Visual grid layout for steps
+   - Clear, concise descriptions
+
+3. **Features/Strategies Section**
+   - Detailed breakdown of capabilities
+   - Examples and use cases
+   - Visual elements (cards, lists, code blocks)
+
+4. **Under the Hood / Technical Details** (for complex apps)
+   - Technology stack
+   - Architecture overview
+   - Performance considerations
+
+5. **Call to Action**
+   - Repeat the CTA button
+   - Social proof or connection opportunity
+
+### Interactive Tool (/try) Structure
+
+1. **Input Form Section**
+   - Clear labels with font-mono font-bold
+   - Required fields marked with red asterisk
+   - Helper text below each input (text-xs text-gray-600)
+   - Custom UI components for all selectors
+   - Large, prominent action button at bottom
+
+2. **Results Section**
+   - Hide form when results shown (single-page flow)
+   - Clear heading with count or summary
+   - Individual result cards with borders
+   - Action buttons (Copy, Download, Search, etc.)
+   - "New" or "Reset" button to start over
+
+3. **Tips/Help Section**
+   - Pro tips or usage guidance
+   - Examples and best practices
+   - Encourage exploration and experimentation
+
+### UI Component Checklist
+
+Before committing any new UI:
+- ✅ No system `<select>` dropdowns
+- ✅ No native date pickers or color pickers
+- ✅ All borders are 2px solid black (or gray-300 for inactive states)
+- ✅ Active states use black background with white text
+- ✅ Hover states change border to black
+- ✅ Font-mono for labels and technical text
+- ✅ Consistent spacing using Tailwind's scale
+- ✅ Responsive grid layouts (grid-cols-1 md:grid-cols-X)
 
 ## Key Architecture Patterns
 
@@ -337,6 +612,114 @@ def parse_cors_origins(cls, values: Any) -> Any:
 - Using `Union[str, List[str]]` prevents automatic JSON parsing
 - `model_validator(mode='before')` manually converts string → list
 - Works with both comma-separated strings (env vars) and lists (defaults)
+
+### Common Frontend Patterns
+
+**Copy to Clipboard with Feedback:**
+```tsx
+const [copiedId, setCopiedId] = useState<string | null>(null);
+
+const handleCopy = async (text: string, id: string) => {
+  try {
+    await navigator.clipboard.writeText(text);
+    setCopiedId(id);
+    setTimeout(() => setCopiedId(null), 2000);
+  } catch (err) {
+    console.error('Failed to copy:', err);
+  }
+};
+
+// In render:
+<button onClick={() => handleCopy(text, id)}>
+  {copiedId === id ? (
+    <>
+      <Check className="w-4 h-4" />
+      COPIED!
+    </>
+  ) : (
+    <>
+      <Copy className="w-4 h-4" />
+      COPY
+    </>
+  )}
+</button>
+```
+
+**Form Input Pattern:**
+```tsx
+<div>
+  <label className="block text-sm font-mono font-bold mb-2">
+    FIELD LABEL <span className="text-red-600">*</span>
+  </label>
+  <input
+    type="text"
+    value={value}
+    onChange={(e) => setValue(e.target.value)}
+    placeholder="e.g., Example Value"
+    className="w-full px-4 py-3 border-2 border-black font-mono text-sm focus:outline-none focus:ring-2 focus:ring-black"
+  />
+  <p className="text-xs text-gray-600 mt-1">Helper text explaining the field</p>
+</div>
+```
+
+**Result Card Pattern:**
+```tsx
+<div className="border-2 border-black p-6 bg-white">
+  <div className="inline-block px-2 py-0.5 bg-black text-white text-xs font-mono font-bold mb-2">
+    CATEGORY
+  </div>
+  <h3 className="text-lg font-bold mb-1">Result Title</h3>
+  <p className="text-sm text-gray-600">Result description</p>
+
+  {/* Result content */}
+
+  {/* Action buttons */}
+  <div className="flex gap-3">
+    <button className="flex-1 px-4 py-3 border-2 border-black bg-white text-black font-mono font-bold text-sm hover:bg-black hover:text-white transition-colors">
+      ACTION 1
+    </button>
+    <button className="flex-1 px-4 py-3 border-2 border-black bg-black text-white font-mono font-bold text-sm hover:bg-white hover:text-black transition-colors">
+      ACTION 2
+    </button>
+  </div>
+</div>
+```
+
+**Single-Page Flow (Form → Results):**
+```tsx
+const [results, setResults] = useState<Result[] | null>(null);
+
+return (
+  <AppLayout appName="APP NAME" backUrl="/app-name">
+    {/* Show form when no results */}
+    {!results && (
+      <section>
+        <div className="border-2 border-black p-6 bg-white">
+          {/* Form inputs */}
+          <button onClick={handleGenerate}>GENERATE</button>
+        </div>
+      </section>
+    )}
+
+    {/* Show results when generated */}
+    {results && (
+      <section>
+        {/* Results display */}
+        <button onClick={() => setResults(null)}>NEW SEARCH</button>
+      </section>
+    )}
+  </AppLayout>
+);
+```
+
+**Date Formatting for Google `after:` Operator:**
+```tsx
+const getDateFilter = (daysAgo: number): string => {
+  const date = new Date();
+  date.setDate(date.getDate() - daysAgo);
+  return `after:${date.toISOString().split('T')[0]}`; // Returns "after:YYYY-MM-DD"
+};
+```
 
 ## Deployment Architecture
 
@@ -482,18 +865,34 @@ frontend/
 │   ├── page.tsx                      # Homepage with app cards
 │   ├── not-found.tsx                 # Custom 404 page
 │   ├── globals.css                   # Global styles & design system
-│   ├── example-app/
+│   ├── ats-boss/                     # Full-stack app example
 │   │   ├── layout.tsx                # App-specific metadata
-│   │   └── page.tsx                  # App page component
+│   │   ├── page.tsx                  # Landing page (white paper)
+│   │   └── try/
+│   │       └── page.tsx              # Interactive tool page
+│   ├── job-finder/                   # Frontend-only app example
+│   │   ├── layout.tsx                # App-specific metadata
+│   │   ├── page.tsx                  # Landing page (white paper)
+│   │   └── try/
+│   │       └── page.tsx              # Interactive tool page (no API calls)
 │   └── api/
 │       └── og/
 │           └── route.tsx             # Dynamic OG image generator
 ├── components/
+│   ├── layouts/
+│   │   └── AppLayout.tsx             # Shared app layout wrapper
+│   ├── shared/                       # Shared components (headers, footers, etc.)
+│   ├── ats-boss/                     # ATS Boss specific components
 │   └── ui/
 │       ├── logo.tsx                  # Reusable JD logo component
 │       └── button.tsx                # Styled button component
 ├── lib/
-│   └── api.ts                        # API client configuration
+│   ├── api.ts                        # API client configuration
+│   ├── api/
+│   │   └── apps/                     # App-specific API clients
+│   │       └── ats-boss.ts           # ATS Boss API types & methods
+│   └── hooks/                        # Custom React hooks
+│       └── useAPI.ts                 # Generic API hook
 ├── public/
 │   └── favicon.svg                   # Site favicon
 └── netlify.toml                      # Netlify deployment config
@@ -514,7 +913,37 @@ backend/
 ```
 
 ### Important Files to Update When:
-- **Adding new app**: `app/page.tsx` (homepage), `lib/api.ts`, backend routes, create app layout with metadata
-- **Changing branding**: `components/ui/logo.tsx`, `public/favicon.svg`, `api/og/route.tsx`
-- **Updating design**: `globals.css` (design system variables and utilities)
-- **Modifying metadata**: `app/layout.tsx` (root), per-app `layout.tsx` files
+- **Adding new full-stack app**:
+  - Homepage: `app/page.tsx` (add to apps array)
+  - Backend: `backend/app/api/routes/` (new route file)
+  - Backend: `backend/main.py` (register router)
+  - Frontend: `app/{app-name}/` (landing page + /try page)
+  - Frontend: `app/{app-name}/layout.tsx` (metadata)
+  - API Client: `lib/api/apps/{app-name}.ts` (types and methods)
+
+- **Adding new frontend-only app**:
+  - Homepage: `app/page.tsx` (add to apps array)
+  - Frontend: `app/{app-name}/page.tsx` (landing/white paper)
+  - Frontend: `app/{app-name}/try/page.tsx` (interactive tool)
+  - Frontend: `app/{app-name}/layout.tsx` (metadata)
+  - NO backend routes needed
+
+- **Adding selection UI (dropdowns, pickers, etc.)**:
+  - **CRITICAL**: Use custom button grids or checkbox cards
+  - Reference: `/job-finder/try/page.tsx` (experience level, date range)
+  - Reference: `/ats-boss/try/page.tsx` (ATS system selector)
+  - NEVER use native `<select>` elements
+
+- **Changing branding**:
+  - `components/ui/logo.tsx` (logo component)
+  - `public/favicon.svg` (site favicon)
+  - `api/og/route.tsx` (OG image generator)
+
+- **Updating design**:
+  - `globals.css` (design system variables and utilities)
+  - Ensure all changes maintain brutalist black & white theme
+
+- **Modifying metadata**:
+  - `app/layout.tsx` (root metadata)
+  - Per-app `layout.tsx` files (app-specific metadata)
+  - OG image parameters in metadata configs
