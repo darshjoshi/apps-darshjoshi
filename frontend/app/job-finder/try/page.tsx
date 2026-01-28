@@ -171,35 +171,30 @@ function JobFinderTryContent() {
     };
     const getDateRangeLabel = () => dateRanges.find(r => r.value === dateRange)?.label || 'Any Time';
 
-    // Build level-specific search terms and exclusions
-    const baseExclusions = [...exclusionArray];
+    // Build level-specific search terms (NO automatic exclusions)
     let levelDescriptor = '';
     let levelInclusionTerms = '';
 
     if (experienceLevel === 'entry') {
-      // ADD positive search terms for entry level
+      // Positive search terms for entry level
       levelInclusionTerms = '("Junior" OR "Entry Level" OR "Entry-Level" OR "New Grad" OR "Graduate" OR "Associate" OR "Early Career")';
       levelDescriptor = 'entry-level, junior, early career, and new grad';
-      // Also exclude senior terms as backup
-      baseExclusions.push('Senior', 'Lead', 'Staff', 'Principal', 'Director', 'VP');
     } else if (experienceLevel === 'mid') {
-      // ADD positive search terms for mid level
+      // Positive search terms for mid level
       levelInclusionTerms = '("Mid Level" OR "Mid-Level" OR "Experienced" OR "Professional")';
       levelDescriptor = 'mid-level and experienced';
-      baseExclusions.push('Junior', 'Entry', 'Senior', 'Director', 'VP', 'Principal');
     } else if (experienceLevel === 'senior') {
-      // ADD positive search terms for senior level
+      // Positive search terms for senior level
       levelInclusionTerms = '("Senior" OR "Lead" OR "Staff")';
       levelDescriptor = 'senior, lead, and staff';
-      baseExclusions.push('Junior', 'Entry', 'Director', 'VP', 'Principal', 'C-Level');
     } else if (experienceLevel === 'staff') {
-      // ADD positive search terms for staff/executive level
+      // Positive search terms for staff/executive level
       levelInclusionTerms = '("Staff" OR "Principal" OR "Director" OR "VP" OR "Executive" OR "C-Level")';
       levelDescriptor = 'staff, principal, and executive';
-      baseExclusions.push('Junior', 'Entry', 'Associate');
     }
 
-    const exclusionString = baseExclusions.length > 0 ? baseExclusions.map(e => `-"${e}"`).join(' ') : '';
+    // Only use manual exclusions from the exclusions field (no automatic level-based exclusions)
+    const exclusionString = exclusionArray.length > 0 ? exclusionArray.map(e => `-"${e}"`).join(' ') : '';
     const getLevelDescription = () => {
       return levelDescriptor ? ` Targets ${levelDescriptor} positions.` : '';
     };
