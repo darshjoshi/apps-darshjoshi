@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { AppLayout } from '@/components/layouts/AppLayout';
 import { Copy, ExternalLink, Check, ArrowLeft } from 'lucide-react';
@@ -13,7 +13,7 @@ interface SearchQuery {
   category: 'recent' | 'platform' | 'location' | 'skill' | 'advanced';
 }
 
-export default function JobFinderTry() {
+function JobFinderTryContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -817,5 +817,24 @@ export default function JobFinderTry() {
         </section>
       )}
     </AppLayout>
+  );
+}
+
+export default function JobFinderTry() {
+  return (
+    <Suspense fallback={
+      <AppLayout appName="JOB SEARCH X-RAY" backUrl="/job-finder">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <div className="inline-block px-4 py-2 border-2 border-black text-black text-sm font-mono font-bold mb-4">
+              LOADING...
+            </div>
+            <p className="text-gray-600 font-mono text-sm">Initializing search tool</p>
+          </div>
+        </div>
+      </AppLayout>
+    }>
+      <JobFinderTryContent />
+    </Suspense>
   );
 }
