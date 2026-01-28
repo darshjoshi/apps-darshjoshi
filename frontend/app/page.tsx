@@ -25,6 +25,13 @@ const apps: App[] = [
     href: '/job-finder',
     status: 'active',
   },
+  {
+    id: 'scribe',
+    name: 'Scribe',
+    description: 'A local Mac app to store meeting transcripts and chat with them later at any time. Purely AI enabled.',
+    href: '/scribe',
+    status: 'coming-soon',
+  },
 ];
 
 export default function Home() {
@@ -91,6 +98,11 @@ export default function Home() {
                         ACTIVE
                       </div>
                     )}
+                    {app.status === 'coming-soon' && (
+                      <div className="inline-block mb-6 px-3 py-1 border-2 border-black text-xs font-mono font-bold bg-black text-white">
+                        COMING SOON
+                      </div>
+                    )}
 
                     {/* App Name */}
                     <h3 className="text-2xl font-bold mb-4 group-hover:underline transition-all duration-300">
@@ -117,7 +129,7 @@ export default function Home() {
             ))}
 
             {/* Placeholder Cards */}
-            {[...Array(4)].map((_, i) => (
+            {[...Array(3)].map((_, i) => (
               <div
                 key={`placeholder-${i}`}
                 className="h-full bg-white border-2 border-gray-200 p-8 relative overflow-hidden"
@@ -127,7 +139,7 @@ export default function Home() {
                     COMING SOON
                   </div>
                   <h3 className="text-2xl font-bold mb-4 text-gray-400">
-                    App {i + 3}
+                    App {i + 1 + apps.length}
                   </h3>
                   <p className="text-gray-400 leading-relaxed mb-8">
                     New application under development. Stay tuned for updates.
