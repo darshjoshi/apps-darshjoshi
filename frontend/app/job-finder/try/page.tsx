@@ -1,8 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { AppLayout } from '@/components/layouts/AppLayout';
-import { Copy, ExternalLink, Check } from 'lucide-react';
+import { Copy, ExternalLink, Check, ArrowLeft } from 'lucide-react';
 
 interface SearchQuery {
   id: string;
@@ -13,6 +14,9 @@ interface SearchQuery {
 }
 
 export default function JobFinderTry() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
   // Form state
   const [jobTitle, setJobTitle] = useState('');
   const [skills, setSkills] = useState('');
@@ -23,10 +27,50 @@ export default function JobFinderTry() {
   const [dateRange, setDateRange] = useState('week');
   const [exclusions, setExclusions] = useState('');
   const [remoteOnly, setRemoteOnly] = useState(false);
+  const [customUrls, setCustomUrls] = useState('');
 
   // Results state
   const [queries, setQueries] = useState<SearchQuery[]>([]);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  // Load state from URL parameters on mount
+  useEffect(() => {
+    const title = searchParams.get('title');
+    const skillsParam = searchParams.get('skills');
+    const locationParam = searchParams.get('location');
+    const level = searchParams.get('level');
+    const platformsParam = searchParams.get('platforms');
+    const companiesParam = searchParams.get('companies');
+    const date = searchParams.get('date');
+    const excludeParam = searchParams.get('exclude');
+    const remote = searchParams.get('remote');
+
+    if (title && !isLoaded) {
+      setJobTitle(title);
+      setSkills(skillsParam || '');
+      setLocation(locationParam || '');
+      setExperienceLevel(level || 'all');
+      setPlatforms(platformsParam ? platformsParam.split(',') : ['greenhouse', 'lever', 'workday']);
+      setCompanies(companiesParam || '');
+      setDateRange(date || 'week');
+      setExclusions(excludeParam || '');
+      setRemoteOnly(remote === 'true');
+      setCustomUrls(searchParams.get('customUrls') || '');
+
+      setIsLoaded(true);
+
+      // Trigger query generation after state is set
+      setTimeout(() => {
+        if (title) {
+          const btn = document.querySelector<HTMLButtonElement>('[data-generate-btn]');
+          if (btn) btn.click();
+        }
+      }, 100);
+    } else if (!isLoaded) {
+      setIsLoaded(true);
+    }
+  }, [searchParams, isLoaded]);
 
   const platformUrls: Record<string, string> = {
     greenhouse: 'site:greenhouse.io OR site:boards.greenhouse.io',
@@ -82,14 +126,49 @@ export default function JobFinderTry() {
       return;
     }
 
+    // Build URL parameters
+    const params = new URLSearchParams();
+    params.set('title', jobTitle);
+    if (skills) params.set('skills', skills);
+    if (location) params.set('location', location);
+    if (experienceLevel !== 'all') params.set('level', experienceLevel);
+    if (platforms.length > 0) params.set('platforms', platforms.join(','));
+    if (companies) params.set('companies', companies);
+    if (dateRange !== 'week') params.set('date', dateRange);
+    if (exclusions) params.set('exclude', exclusions);
+    if (remoteOnly) params.set('remote', 'true');
+    if (customUrls) params.set('customUrls', customUrls);
+
+    // Update URL without page reload
+    router.push(`/job-finder/try?${params.toString()}`, { scroll: false });
+
     const generatedQueries: SearchQuery[] = [];
     const dateFilter = getDateFilter();
-    const platformSites = platforms.map(p => platformUrls[p]).join(' OR ');
+
+    // Build platform sites including custom URLs
+    const platformSitesList = platforms.map(p => platformUrls[p]);
+    if (customUrls.trim()) {
+      // Parse custom URLs (comma-separated)
+      const customSites = customUrls.split(',').map(url => {
+        const trimmed = url.trim();
+        // Add site: prefix if not present
+        return trimmed.startsWith('site:') ? trimmed : `site:${trimmed}`;
+      }).filter(Boolean);
+      platformSitesList.push(...customSites);
+    }
+    const platformSites = platformSitesList.join(' OR ');
+
     const skillsArray = skills.split(',').map(s => s.trim()).filter(Boolean);
     const exclusionArray = exclusions.split(',').map(s => s.trim()).filter(Boolean);
 
     // Helper functions for readable descriptions
-    const getPlatformNames = () => platforms.map(p => p.charAt(0).toUpperCase() + p.slice(1)).join(', ');
+    const getPlatformNames = () => {
+      const names = platforms.map(p => p.charAt(0).toUpperCase() + p.slice(1));
+      if (customUrls.trim()) {
+        names.push('Custom URLs');
+      }
+      return names.join(', ');
+    };
     const getDateRangeLabel = () => dateRanges.find(r => r.value === dateRange)?.label || 'Any Time';
 
     // Build level-specific search terms and exclusions
@@ -135,7 +214,7 @@ export default function JobFinderTry() {
     }
 
     // Query 1: Recent Jobs - Multi-Platform
-    if (platforms.length > 0) {
+    if (platforms.length > 0 || customUrls.trim()) {
       const q1 = [
         `(${platformSites})`,
         `"${jobTitle}"`,
@@ -313,7 +392,15 @@ export default function JobFinderTry() {
     }
   };
 
+  const handleBackToForm = () => {
+    // Clear queries to show form, keep form state intact
+    setQueries([]);
+    // Keep URL params but just hide results
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   const handleReset = () => {
+    // Full reset - clear everything and go back to /try
     setJobTitle('');
     setSkills('');
     setLocation('');
@@ -323,7 +410,9 @@ export default function JobFinderTry() {
     setDateRange('week');
     setExclusions('');
     setRemoteOnly(false);
+    setCustomUrls('');
     setQueries([]);
+    router.push('/job-finder/try');
   };
 
   const togglePlatform = (platform: string) => {
@@ -457,6 +546,21 @@ export default function JobFinderTry() {
                 <p className="text-xs text-gray-600 mt-1">Select ATS platforms to search. More platforms = more results.</p>
               </div>
 
+              {/* Custom URLs */}
+              <div>
+                <label className="block text-sm font-mono font-bold mb-2">
+                  CUSTOM URLS (Optional)
+                </label>
+                <input
+                  type="text"
+                  value={customUrls}
+                  onChange={(e) => setCustomUrls(e.target.value)}
+                  placeholder="e.g., careers.company.com/jobs, jobs.example.com"
+                  className="w-full px-4 py-3 border-2 border-black font-mono text-sm focus:outline-none focus:ring-2 focus:ring-black"
+                />
+                <p className="text-xs text-gray-600 mt-1">Add custom job board URLs (comma-separated). No need to include &quot;site:&quot; prefix.</p>
+              </div>
+
               {/* Date Range - Custom UI */}
               <div>
                 <label className="block text-sm font-mono font-bold mb-2">
@@ -514,6 +618,7 @@ export default function JobFinderTry() {
               <button
                 onClick={generateQueries}
                 disabled={!jobTitle.trim()}
+                data-generate-btn
                 className="w-full px-6 py-4 border-2 border-black bg-black text-white font-mono font-bold text-lg
                          hover:bg-white hover:text-black transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
@@ -536,13 +641,23 @@ export default function JobFinderTry() {
                   Generated {queries.length} optimized queries based on your selections.
                 </p>
               </div>
-              <button
-                onClick={handleReset}
-                className="px-4 py-2 border-2 border-black bg-white text-black font-mono font-bold text-sm
-                         hover:bg-black hover:text-white transition-colors"
-              >
-                NEW SEARCH
-              </button>
+              <div className="flex gap-2">
+                <button
+                  onClick={handleBackToForm}
+                  className="flex items-center gap-2 px-4 py-2 border-2 border-black bg-white text-black font-mono font-bold text-sm
+                           hover:bg-black hover:text-white transition-colors"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  EDIT SEARCH
+                </button>
+                <button
+                  onClick={handleReset}
+                  className="px-4 py-2 border-2 border-gray-300 bg-white text-gray-600 font-mono font-bold text-sm
+                           hover:border-black hover:text-black transition-colors"
+                >
+                  RESET ALL
+                </button>
+              </div>
             </div>
 
             {/* Search Parameters Summary */}
@@ -576,6 +691,11 @@ export default function JobFinderTry() {
                 <span className="px-2 py-1 bg-gray-100 border border-gray-300 text-xs font-mono">
                   <strong>Platforms:</strong> {platforms.map(p => p.charAt(0).toUpperCase() + p.slice(1)).join(', ')}
                 </span>
+                {customUrls && (
+                  <span className="px-2 py-1 bg-blue-50 border border-blue-300 text-xs font-mono text-blue-700">
+                    <strong>Custom URLs:</strong> {customUrls}
+                  </span>
+                )}
                 <span className="px-2 py-1 bg-gray-100 border border-gray-300 text-xs font-mono">
                   <strong>Recency:</strong> {dateRanges.find(r => r.value === dateRange)?.label}
                 </span>
