@@ -4,6 +4,7 @@ import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { AppLayout } from '@/components/layouts/AppLayout';
 import { Copy, ExternalLink, Check, ArrowLeft } from 'lucide-react';
+import { usePostHog } from 'posthog-js/react';
 
 interface SearchQuery {
   id: string;
@@ -16,18 +17,16 @@ interface SearchQuery {
 function JobFinderTryContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const posthog = usePostHog();
 
   // Form state
   const [jobTitle, setJobTitle] = useState('');
   const [skills, setSkills] = useState('');
   const [location, setLocation] = useState('');
-  const [experienceLevel, setExperienceLevel] = useState('all');
   const [platforms, setPlatforms] = useState<string[]>(['greenhouse', 'lever', 'workday']);
   const [companies, setCompanies] = useState('');
   const [dateRange, setDateRange] = useState('week');
-  const [exclusions, setExclusions] = useState('');
   const [remoteOnly, setRemoteOnly] = useState(false);
-  const [customUrls, setCustomUrls] = useState('');
 
   // Results state
   const [queries, setQueries] = useState<SearchQuery[]>([]);
@@ -39,24 +38,19 @@ function JobFinderTryContent() {
     const title = searchParams.get('title');
     const skillsParam = searchParams.get('skills');
     const locationParam = searchParams.get('location');
-    const level = searchParams.get('level');
     const platformsParam = searchParams.get('platforms');
     const companiesParam = searchParams.get('companies');
     const date = searchParams.get('date');
-    const excludeParam = searchParams.get('exclude');
     const remote = searchParams.get('remote');
 
     if (title && !isLoaded) {
       setJobTitle(title);
       setSkills(skillsParam || '');
       setLocation(locationParam || '');
-      setExperienceLevel(level || 'all');
       setPlatforms(platformsParam ? platformsParam.split(',') : ['greenhouse', 'lever', 'workday']);
       setCompanies(companiesParam || '');
       setDateRange(date || 'week');
-      setExclusions(excludeParam || '');
       setRemoteOnly(remote === 'true');
-      setCustomUrls(searchParams.get('customUrls') || '');
 
       setIsLoaded(true);
 
@@ -73,20 +67,12 @@ function JobFinderTryContent() {
   }, [searchParams, isLoaded]);
 
   const platformUrls: Record<string, string> = {
-    greenhouse: 'site:greenhouse.io OR site:boards.greenhouse.io',
+    greenhouse: 'site:greenhouse.io OR site:boards.greenhouse.io OR site:job-boards.greenhouse.io',
     lever: 'site:jobs.lever.co',
     workday: 'site:myworkdayjobs.com',
     taleo: 'site:taleo.net/careersection',
     jobvite: 'site:jobs.jobvite.com',
   };
-
-  const experienceLevels = [
-    { value: 'all', label: 'All Levels' },
-    { value: 'entry', label: 'Entry / Junior' },
-    { value: 'mid', label: 'Mid Level' },
-    { value: 'senior', label: 'Senior / Lead' },
-    { value: 'staff', label: 'Staff / Principal' },
-  ];
 
   const dateRanges = [
     { value: 'today', label: 'Today (24h)' },
@@ -131,13 +117,10 @@ function JobFinderTryContent() {
     params.set('title', jobTitle);
     if (skills) params.set('skills', skills);
     if (location) params.set('location', location);
-    if (experienceLevel !== 'all') params.set('level', experienceLevel);
     if (platforms.length > 0) params.set('platforms', platforms.join(','));
     if (companies) params.set('companies', companies);
     if (dateRange !== 'week') params.set('date', dateRange);
-    if (exclusions) params.set('exclude', exclusions);
     if (remoteOnly) params.set('remote', 'true');
-    if (customUrls) params.set('customUrls', customUrls);
 
     // Update URL without page reload
     router.push(`/job-finder/try?${params.toString()}`, { scroll: false });
@@ -145,59 +128,16 @@ function JobFinderTryContent() {
     const generatedQueries: SearchQuery[] = [];
     const dateFilter = getDateFilter();
 
-    // Build platform sites including custom URLs
-    const platformSitesList = platforms.map(p => platformUrls[p]);
-    if (customUrls.trim()) {
-      // Parse custom URLs (comma-separated)
-      const customSites = customUrls.split(',').map(url => {
-        const trimmed = url.trim();
-        // Add site: prefix if not present
-        return trimmed.startsWith('site:') ? trimmed : `site:${trimmed}`;
-      }).filter(Boolean);
-      platformSitesList.push(...customSites);
-    }
-    const platformSites = platformSitesList.join(' OR ');
+    // Build platform sites
+    const platformSites = platforms.map(p => platformUrls[p]).join(' OR ');
 
     const skillsArray = skills.split(',').map(s => s.trim()).filter(Boolean);
-    const exclusionArray = exclusions.split(',').map(s => s.trim()).filter(Boolean);
 
     // Helper functions for readable descriptions
     const getPlatformNames = () => {
-      const names = platforms.map(p => p.charAt(0).toUpperCase() + p.slice(1));
-      if (customUrls.trim()) {
-        names.push('Custom URLs');
-      }
-      return names.join(', ');
+      return platforms.map(p => p.charAt(0).toUpperCase() + p.slice(1)).join(', ');
     };
     const getDateRangeLabel = () => dateRanges.find(r => r.value === dateRange)?.label || 'Any Time';
-
-    // Build level-specific search terms (NO automatic exclusions)
-    let levelDescriptor = '';
-    let levelInclusionTerms = '';
-
-    if (experienceLevel === 'entry') {
-      // Positive search terms for entry level
-      levelInclusionTerms = '("Junior" OR "Entry Level" OR "Entry-Level" OR "New Grad" OR "Graduate" OR "Associate" OR "Early Career")';
-      levelDescriptor = 'entry-level, junior, early career, and new grad';
-    } else if (experienceLevel === 'mid') {
-      // Positive search terms for mid level
-      levelInclusionTerms = '("Mid Level" OR "Mid-Level" OR "Experienced" OR "Professional")';
-      levelDescriptor = 'mid-level and experienced';
-    } else if (experienceLevel === 'senior') {
-      // Positive search terms for senior level
-      levelInclusionTerms = '("Senior" OR "Lead" OR "Staff")';
-      levelDescriptor = 'senior, lead, and staff';
-    } else if (experienceLevel === 'staff') {
-      // Positive search terms for staff/executive level
-      levelInclusionTerms = '("Staff" OR "Principal" OR "Director" OR "VP" OR "Executive" OR "C-Level")';
-      levelDescriptor = 'staff, principal, and executive';
-    }
-
-    // Only use manual exclusions from the exclusions field (no automatic level-based exclusions)
-    const exclusionString = exclusionArray.length > 0 ? exclusionArray.map(e => `-"${e}"`).join(' ') : '';
-    const getLevelDescription = () => {
-      return levelDescriptor ? ` Targets ${levelDescriptor} positions.` : '';
-    };
 
     // Location logic
     let locationFilter = '';
@@ -209,20 +149,18 @@ function JobFinderTryContent() {
     }
 
     // Query 1: Recent Jobs - Multi-Platform
-    if (platforms.length > 0 || customUrls.trim()) {
+    if (platforms.length > 0) {
       const q1 = [
         `(${platformSites})`,
         `"${jobTitle}"`,
-        levelInclusionTerms,
         locationFilter,
-        exclusionString,
         dateFilter,
       ].filter(Boolean).join(' ');
 
       generatedQueries.push({
         id: 'recent-multi',
         title: 'Recent Jobs Across All Selected Platforms',
-        description: `Searches ${getPlatformNames()} for "${jobTitle}" posted in the last ${getDateRangeLabel()}.${getLevelDescription()} Broadest coverage.`,
+        description: `Searches ${getPlatformNames()} for "${jobTitle}" posted in the last ${getDateRangeLabel()}. Broadest coverage.`,
         query: q1,
         category: 'recent',
       });
@@ -234,17 +172,15 @@ function JobFinderTryContent() {
       const q2 = [
         platforms.length > 0 ? `(${platformSites})` : '',
         `"${jobTitle}"`,
-        levelInclusionTerms,
         `(${skillsQuery})`,
         locationFilter,
-        exclusionString,
         dateFilter,
       ].filter(Boolean).join(' ');
 
       generatedQueries.push({
         id: 'skills-focused',
         title: 'Skills-Matched Jobs',
-        description: `Prioritizes jobs mentioning your skills: ${skillsArray.join(', ')}.${getLevelDescription()} Higher relevance.`,
+        description: `Prioritizes jobs mentioning your skills: ${skillsArray.join(', ')}. Higher relevance.`,
         query: q2,
         category: 'skill',
       });
@@ -256,9 +192,7 @@ function JobFinderTryContent() {
         const q = [
           platformUrls[platform],
           `"${jobTitle}"`,
-          levelInclusionTerms,
           locationFilter,
-          exclusionString,
           dateFilter,
         ].filter(Boolean).join(' ');
 
@@ -272,37 +206,15 @@ function JobFinderTryContent() {
       });
     }
 
-    // Query 4: Location-Specific (if not remote-only)
-    if (location.trim() && !remoteOnly) {
-      const q4 = [
-        platforms.length > 0 ? `(${platformSites})` : '',
-        `"${jobTitle}"`,
-        levelInclusionTerms,
-        locationFilter,
-        exclusionString,
-        dateFilter,
-      ].filter(Boolean).join(' ');
-
-      generatedQueries.push({
-        id: 'location-focused',
-        title: 'Location-Focused Search',
-        description: `Emphasizes your target location(s): ${location}. Best for geo-specific searches.`,
-        query: q4,
-        category: 'location',
-      });
-    }
-
-    // Query 5: Company-Specific (if companies provided)
+    // Query 4: Company-Specific (if companies provided)
     if (companies.trim()) {
       const companyArray = companies.split(',').map(c => c.trim());
       const companyQuery = companyArray.map(c => `"${c}"`).join(' OR ');
       const q5 = [
         platforms.length > 0 ? `(${platformSites})` : '',
         `"${jobTitle}"`,
-        levelInclusionTerms,
         `(${companyQuery})`,
         locationFilter,
-        exclusionString,
         dateFilter,
       ].filter(Boolean).join(' ');
 
@@ -321,16 +233,14 @@ function JobFinderTryContent() {
       const q6 = [
         platforms.length > 0 ? `(${platformSites})` : '',
         `"${jobTitle}"`,
-        levelInclusionTerms,
         locationFilter,
-        exclusionString,
         `after:${todayDate}`,
       ].filter(Boolean).join(' ');
 
       generatedQueries.push({
         id: 'ultra-fresh',
         title: 'Posted Today Only',
-        description: `Shows only jobs posted in the last 24 hours.${getLevelDescription()} Absolute freshest listings.`,
+        description: 'Shows only jobs posted in the last 24 hours. Absolute freshest listings.',
         query: q6,
         category: 'recent',
       });
@@ -339,10 +249,8 @@ function JobFinderTryContent() {
     // Query 7: Broad Search (no ATS filter)
     const q7 = [
       `"${jobTitle}"`,
-      levelInclusionTerms,
       skillsArray.length > 0 ? `(${skillsArray.map(s => `"${s}"`).join(' OR ')})` : '',
       locationFilter,
-      exclusionString,
       dateFilter,
     ].filter(Boolean).join(' ');
 
@@ -359,9 +267,7 @@ function JobFinderTryContent() {
       const q8 = [
         platforms.length > 0 ? `(${platformSites})` : '',
         `"${jobTitle}"`,
-        levelInclusionTerms,
         '("remote" OR "work from home")',
-        exclusionString,
         dateFilter,
       ].filter(Boolean).join(' ');
 
@@ -374,6 +280,17 @@ function JobFinderTryContent() {
       });
     }
 
+    posthog?.capture('queries_generated', {
+      job_title: jobTitle,
+      platforms: platforms,
+      date_range: dateRange,
+      has_skills: skills.trim().length > 0,
+      has_location: location.trim().length > 0,
+      remote_only: remoteOnly,
+      has_companies: companies.trim().length > 0,
+      query_count: generatedQueries.length,
+    });
+
     setQueries(generatedQueries);
   };
 
@@ -381,6 +298,10 @@ function JobFinderTryContent() {
     try {
       await navigator.clipboard.writeText(query);
       setCopiedId(id);
+      posthog?.capture('query_copied', {
+        query_id: id,
+        query_category: queries.find(q => q.id === id)?.category,
+      });
       setTimeout(() => setCopiedId(null), 2000);
     } catch (err) {
       console.error('Failed to copy:', err);
@@ -388,6 +309,7 @@ function JobFinderTryContent() {
   };
 
   const handleBackToForm = () => {
+    posthog?.capture('search_edited');
     // Clear queries to show form, keep form state intact
     setQueries([]);
     // Keep URL params but just hide results
@@ -395,17 +317,15 @@ function JobFinderTryContent() {
   };
 
   const handleReset = () => {
+    posthog?.capture('search_reset');
     // Full reset - clear everything and go back to /try
     setJobTitle('');
     setSkills('');
     setLocation('');
-    setExperienceLevel('all');
     setPlatforms(['greenhouse', 'lever', 'workday']);
     setCompanies('');
     setDateRange('week');
-    setExclusions('');
     setRemoteOnly(false);
-    setCustomUrls('');
     setQueries([]);
     router.push('/job-finder/try');
   };
@@ -474,7 +394,7 @@ function JobFinderTryContent() {
                   <p className="text-xs text-gray-600 mt-1">Leave blank to search all locations</p>
                 </div>
 
-                <div className="flex items-end">
+                <div className="flex items-start pt-7">
                   <label className="flex items-center gap-3 px-4 py-3 border-2 border-black bg-white hover:bg-gray-50 cursor-pointer w-full">
                     <input
                       type="checkbox"
@@ -488,29 +408,6 @@ function JobFinderTryContent() {
                     <span className="text-sm font-mono font-bold">REMOTE ONLY</span>
                   </label>
                 </div>
-              </div>
-
-              {/* Experience Level - Custom UI */}
-              <div>
-                <label className="block text-sm font-mono font-bold mb-2">
-                  EXPERIENCE LEVEL
-                </label>
-                <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
-                  {experienceLevels.map((level) => (
-                    <button
-                      key={level.value}
-                      onClick={() => setExperienceLevel(level.value)}
-                      className={`px-4 py-3 border-2 font-mono text-sm font-bold transition-colors ${
-                        experienceLevel === level.value
-                          ? 'border-black bg-black text-white'
-                          : 'border-gray-300 bg-white text-black hover:border-black'
-                      }`}
-                    >
-                      {level.label}
-                    </button>
-                  ))}
-                </div>
-                <p className="text-xs text-gray-600 mt-1">Automatically excludes irrelevant seniority levels</p>
               </div>
 
               {/* ATS Platforms */}
@@ -541,21 +438,6 @@ function JobFinderTryContent() {
                 <p className="text-xs text-gray-600 mt-1">Select ATS platforms to search. More platforms = more results.</p>
               </div>
 
-              {/* Custom URLs */}
-              <div>
-                <label className="block text-sm font-mono font-bold mb-2">
-                  CUSTOM URLS (Optional)
-                </label>
-                <input
-                  type="text"
-                  value={customUrls}
-                  onChange={(e) => setCustomUrls(e.target.value)}
-                  placeholder="e.g., careers.company.com/jobs, jobs.example.com"
-                  className="w-full px-4 py-3 border-2 border-black font-mono text-sm focus:outline-none focus:ring-2 focus:ring-black"
-                />
-                <p className="text-xs text-gray-600 mt-1">Add custom job board URLs (comma-separated). No need to include &quot;site:&quot; prefix.</p>
-              </div>
-
               {/* Date Range - Custom UI */}
               <div>
                 <label className="block text-sm font-mono font-bold mb-2">
@@ -576,7 +458,7 @@ function JobFinderTryContent() {
                     </button>
                   ))}
                 </div>
-                <p className="text-xs text-gray-600 mt-1">Recent postings have less competition</p>
+                <p className="text-xs text-gray-600 mt-1">Uses Google&apos;s <code className="bg-gray-100 px-1">after:</code> operator which filters by page index date, not posting date — results may vary</p>
               </div>
 
               {/* Companies (Optional) */}
@@ -592,21 +474,6 @@ function JobFinderTryContent() {
                   className="w-full px-4 py-3 border-2 border-black font-mono text-sm focus:outline-none focus:ring-2 focus:ring-black"
                 />
                 <p className="text-xs text-gray-600 mt-1">Comma-separated list of specific companies to target</p>
-              </div>
-
-              {/* Exclusions */}
-              <div>
-                <label className="block text-sm font-mono font-bold mb-2">
-                  EXCLUDE TERMS (Optional)
-                </label>
-                <input
-                  type="text"
-                  value={exclusions}
-                  onChange={(e) => setExclusions(e.target.value)}
-                  placeholder="e.g., Contract, Intern, C++"
-                  className="w-full px-4 py-3 border-2 border-black font-mono text-sm focus:outline-none focus:ring-2 focus:ring-black"
-                />
-                <p className="text-xs text-gray-600 mt-1">Terms to exclude from results (comma-separated)</p>
               </div>
 
               {/* Generate Button */}
@@ -667,13 +534,6 @@ function JobFinderTryContent() {
                     <strong>Skills:</strong> {skills}
                   </span>
                 )}
-                <span className="px-2 py-1 bg-green-50 border border-green-600 text-xs font-mono text-green-800">
-                  <strong>Level:</strong> {experienceLevels.find(l => l.value === experienceLevel)?.label}
-                  {experienceLevel === 'entry' && ' (Entry, Junior, Early Career, New Grad)'}
-                  {experienceLevel === 'mid' && ' (Mid-Level, Experienced)'}
-                  {experienceLevel === 'senior' && ' (Senior, Lead, Staff)'}
-                  {experienceLevel === 'staff' && ' (Staff, Principal, Executive)'}
-                </span>
                 {remoteOnly ? (
                   <span className="px-2 py-1 bg-gray-100 border border-gray-300 text-xs font-mono">
                     <strong>Location:</strong> Remote Only
@@ -686,22 +546,12 @@ function JobFinderTryContent() {
                 <span className="px-2 py-1 bg-gray-100 border border-gray-300 text-xs font-mono">
                   <strong>Platforms:</strong> {platforms.map(p => p.charAt(0).toUpperCase() + p.slice(1)).join(', ')}
                 </span>
-                {customUrls && (
-                  <span className="px-2 py-1 bg-blue-50 border border-blue-300 text-xs font-mono text-blue-700">
-                    <strong>Custom URLs:</strong> {customUrls}
-                  </span>
-                )}
                 <span className="px-2 py-1 bg-gray-100 border border-gray-300 text-xs font-mono">
                   <strong>Recency:</strong> {dateRanges.find(r => r.value === dateRange)?.label}
                 </span>
                 {companies && (
                   <span className="px-2 py-1 bg-gray-100 border border-gray-300 text-xs font-mono">
                     <strong>Companies:</strong> {companies}
-                  </span>
-                )}
-                {exclusions && (
-                  <span className="px-2 py-1 bg-red-50 border border-red-300 text-xs font-mono text-red-700">
-                    <strong>Also Excluding:</strong> {exclusions}
                   </span>
                 )}
               </div>
@@ -727,28 +577,6 @@ function JobFinderTryContent() {
                   <code className="text-gray-800">{q.query}</code>
                 </div>
 
-                {/* Explanation for level targeting */}
-                {experienceLevel === 'entry' && (
-                  <p className="text-xs text-green-700 bg-green-50 border border-green-200 px-3 py-2 mb-4">
-                    ✓ Optimized for: Entry-level, Junior, Early Career, and New Grad positions
-                  </p>
-                )}
-                {experienceLevel === 'mid' && (
-                  <p className="text-xs text-green-700 bg-green-50 border border-green-200 px-3 py-2 mb-4">
-                    ✓ Optimized for: Mid-level and Experienced professional positions
-                  </p>
-                )}
-                {experienceLevel === 'senior' && (
-                  <p className="text-xs text-green-700 bg-green-50 border border-green-200 px-3 py-2 mb-4">
-                    ✓ Optimized for: Senior, Lead, and Staff positions
-                  </p>
-                )}
-                {experienceLevel === 'staff' && (
-                  <p className="text-xs text-green-700 bg-green-50 border border-green-200 px-3 py-2 mb-4">
-                    ✓ Optimized for: Staff, Principal, and Executive positions
-                  </p>
-                )}
-
                 {/* Action Buttons */}
                 <div className="flex gap-3">
                   <button
@@ -772,6 +600,10 @@ function JobFinderTryContent() {
                     href={`https://www.google.com/search?q=${encodeURIComponent(q.query)}`}
                     target="_blank"
                     rel="noopener noreferrer"
+                    onClick={() => posthog?.capture('query_searched_google', {
+                      query_id: q.id,
+                      query_category: q.category,
+                    })}
                     className="flex-1 flex items-center justify-center gap-2 px-4 py-3 border-2 border-black bg-black text-white font-mono font-bold text-sm
                              hover:bg-white hover:text-black transition-colors"
                   >
@@ -785,8 +617,12 @@ function JobFinderTryContent() {
 
           {/* Tips Section */}
           <div className="border-2 border-black p-6 bg-white mt-6">
-            <h3 className="text-lg font-bold mb-3">💡 Pro Tips</h3>
+            <h3 className="text-lg font-bold mb-3">Pro Tips</h3>
             <ul className="space-y-2 text-sm text-gray-700">
+              <li className="flex items-start">
+                <span className="mr-2">→</span>
+                <span>Start simple: just your job title + platforms + recency. Only add skills, location, or company filters if you&apos;re getting too many irrelevant results. Google X-Ray works best with fewer, broader terms.</span>
+              </li>
               <li className="flex items-start">
                 <span className="mr-2">→</span>
                 <span>Start with &quot;Recent Jobs&quot; queries for fresh postings with less competition</span>
@@ -806,6 +642,10 @@ function JobFinderTryContent() {
               <li className="flex items-start">
                 <span className="mr-2">→</span>
                 <span>Modify queries manually to experiment with different keyword combinations</span>
+              </li>
+              <li className="flex items-start">
+                <span className="mr-2">→</span>
+                <span>For more reliable date filtering, click &quot;SEARCH GOOGLE&quot; then use Google&apos;s built-in Tools → &quot;Past week&quot; or &quot;Past 24 hours&quot; filter</span>
               </li>
             </ul>
           </div>
