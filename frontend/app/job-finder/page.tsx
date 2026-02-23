@@ -1,5 +1,7 @@
+import { Suspense } from 'react';
 import Link from 'next/link';
 import { AppLayout } from '@/components/layouts/AppLayout';
+import { UTMLink } from '@/components/shared/UTMLink';
 
 export default function JobFinderLanding() {
   return (
@@ -15,11 +17,19 @@ export default function JobFinderLanding() {
             <h1 className="text-4xl font-bold">
               <span className="inline-block border-b-4 border-black pb-1">Job Search X-Ray</span>
             </h1>
-            <Link href="/job-finder/try">
-              <button className="px-6 py-3 border-2 border-black bg-black text-white font-mono font-bold hover:bg-white hover:text-black transition-colors">
-                TRY IT NOW! →
-              </button>
-            </Link>
+            <Suspense fallback={
+              <Link href="/job-finder/try">
+                <button className="px-6 py-3 border-2 border-black bg-black text-white font-mono font-bold hover:bg-white hover:text-black transition-colors">
+                  TRY IT NOW! →
+                </button>
+              </Link>
+            }>
+              <UTMLink href="/job-finder/try">
+                <button className="px-6 py-3 border-2 border-black bg-black text-white font-mono font-bold hover:bg-white hover:text-black transition-colors">
+                  TRY IT NOW! →
+                </button>
+              </UTMLink>
+            </Suspense>
           </div>
 
           <div className="space-y-4 text-sm leading-relaxed">
@@ -336,11 +346,19 @@ export default function JobFinderLanding() {
                 fresh postings directly on company ATS platforms before the crowd arrives.
               </p>
             </div>
-            <Link href="/job-finder/try">
-              <button className="shrink-0 px-6 py-3 border-2 border-black bg-black text-white font-mono font-bold hover:bg-white hover:text-black transition-colors">
-                GENERATE QUERIES NOW →
-              </button>
-            </Link>
+            <Suspense fallback={
+              <Link href="/job-finder/try">
+                <button className="shrink-0 px-6 py-3 border-2 border-black bg-black text-white font-mono font-bold hover:bg-white hover:text-black transition-colors">
+                  GENERATE QUERIES NOW →
+                </button>
+              </Link>
+            }>
+              <UTMLink href="/job-finder/try">
+                <button className="shrink-0 px-6 py-3 border-2 border-black bg-black text-white font-mono font-bold hover:bg-white hover:text-black transition-colors">
+                  GENERATE QUERIES NOW →
+                </button>
+              </UTMLink>
+            </Suspense>
           </div>
         </div>
       </section>
