@@ -4,6 +4,7 @@ import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { AppLayout } from '@/components/layouts/AppLayout';
 import { Copy, ExternalLink, Check, ArrowLeft } from 'lucide-react';
+import { usePostHog } from 'posthog-js/react';
 
 interface SearchQuery {
   id: string;
@@ -16,6 +17,7 @@ interface SearchQuery {
 function JobFinderTryContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const posthog = usePostHog();
 
   // Form state
   const [jobTitle, setJobTitle] = useState('');
@@ -278,6 +280,17 @@ function JobFinderTryContent() {
       });
     }
 
+    posthog?.capture('queries_generated', {
+      job_title: jobTitle,
+      platforms: platforms,
+      date_range: dateRange,
+      has_skills: skills.trim().length > 0,
+      has_location: location.trim().length > 0,
+      remote_only: remoteOnly,
+      has_companies: companies.trim().length > 0,
+      query_count: generatedQueries.length,
+    });
+
     setQueries(generatedQueries);
   };
 
@@ -285,6 +298,10 @@ function JobFinderTryContent() {
     try {
       await navigator.clipboard.writeText(query);
       setCopiedId(id);
+      posthog?.capture('query_copied', {
+        query_id: id,
+        query_category: queries.find(q => q.id === id)?.category,
+      });
       setTimeout(() => setCopiedId(null), 2000);
     } catch (err) {
       console.error('Failed to copy:', err);
@@ -292,6 +309,7 @@ function JobFinderTryContent() {
   };
 
   const handleBackToForm = () => {
+    posthog?.capture('search_edited');
     // Clear queries to show form, keep form state intact
     setQueries([]);
     // Keep URL params but just hide results
@@ -299,6 +317,7 @@ function JobFinderTryContent() {
   };
 
   const handleReset = () => {
+    posthog?.capture('search_reset');
     // Full reset - clear everything and go back to /try
     setJobTitle('');
     setSkills('');
@@ -581,6 +600,10 @@ function JobFinderTryContent() {
                     href={`https://www.google.com/search?q=${encodeURIComponent(q.query)}`}
                     target="_blank"
                     rel="noopener noreferrer"
+                    onClick={() => posthog?.capture('query_searched_google', {
+                      query_id: q.id,
+                      query_category: q.category,
+                    })}
                     className="flex-1 flex items-center justify-center gap-2 px-4 py-3 border-2 border-black bg-black text-white font-mono font-bold text-sm
                              hover:bg-white hover:text-black transition-colors"
                   >
