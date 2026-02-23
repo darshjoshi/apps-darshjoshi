@@ -32,16 +32,16 @@ export default function JobFinderLanding() {
 
             <p>
               Recruiters use <strong>X-Ray search techniques</strong> — advanced Google search operators
-              that directly target ATS platforms, filter by location, exclude unwanted terms, and find
-              jobs posted in the last 24-72 hours. This isn&apos;t magic. It&apos;s just knowing which URLs
-              to target and how to structure Boolean queries.
+              that directly target ATS platforms, filter by location, and find jobs posted in the
+              last 24-72 hours. This isn&apos;t magic. It&apos;s just knowing which URLs to target and
+              how to structure Boolean queries.
             </p>
 
             <p>
               This tool generates customized Google search queries based on your requirements — role,
-              skills, location, experience level, and target companies. You get 5-10 copy-paste queries
-              optimized for different scenarios: recent postings, specific ATS platforms, location-based,
-              remote-only, and more. Click any query to search Google directly.
+              skills, location, and target companies. You get 5-10 copy-paste queries optimized for
+              different scenarios: recent postings, specific ATS platforms, location-based, remote-only,
+              and more. Click any query to search Google directly.
             </p>
           </div>
         </div>
@@ -77,9 +77,9 @@ export default function JobFinderLanding() {
               </div>
               <h3 className="text-lg font-bold mb-2">Target Exactly What You Want</h3>
               <p className="text-sm text-gray-700 mb-3">
-                Boolean operators (AND, OR, NOT) and Google&apos;s advanced search syntax let you combine
-                multiple criteria: specific roles, required skills, location preferences, experience level,
-                and exclude what you don&apos;t want. No wading through irrelevant results.
+                Boolean operators (AND, OR) and Google&apos;s advanced search syntax let you combine
+                multiple criteria: specific roles, required skills, location preferences, and target
+                companies. No wading through irrelevant results.
               </p>
               <div className="flex flex-wrap gap-2">
                 <span className="px-2 py-1 border border-black text-xs font-mono">Boolean Logic</span>
@@ -119,8 +119,8 @@ export default function JobFinderLanding() {
               <div className="text-5xl font-bold mb-3 text-black">01</div>
               <h3 className="text-lg font-bold mb-2">Input Your Requirements</h3>
               <p className="text-sm text-gray-700">
-                Enter your target role, skills, location preferences, experience level, and any specific
-                companies or ATS platforms you want to focus on.
+                Enter your target role, skills, location preferences, and any specific companies or
+                ATS platforms you want to focus on.
               </p>
             </div>
 
@@ -198,17 +198,16 @@ export default function JobFinderLanding() {
             </div>
             <h3 className="text-xl font-bold mb-3">Boolean Logic</h3>
             <p className="text-sm text-gray-600 mb-4">
-              Combine <code className="bg-gray-100 px-1 py-0.5 text-xs font-mono">OR</code>, <code className="bg-gray-100 px-1 py-0.5 text-xs font-mono">AND</code>,
-              and <code className="bg-gray-100 px-1 py-0.5 text-xs font-mono">-</code> (exclude) to craft precise queries that
-              match multiple variations and filter out noise.
+              Combine <code className="bg-gray-100 px-1 py-0.5 text-xs font-mono">OR</code> and <code className="bg-gray-100 px-1 py-0.5 text-xs font-mono">AND</code> to
+              craft precise queries that match multiple role and skill variations in a single search.
             </p>
             <div className="bg-gray-50 border border-gray-300 p-3 mb-3">
               <code className="text-xs font-mono text-gray-800 break-all">
-                (&quot;Software Engineer&quot; OR &quot;Backend Engineer&quot;) Python -Senior
+                (&quot;Software Engineer&quot; OR &quot;Backend Engineer&quot;) &quot;Python&quot;
               </code>
             </div>
             <p className="text-xs text-gray-500">
-              Finds Software or Backend Engineer roles requiring Python, excluding senior positions.
+              Finds Software or Backend Engineer roles mentioning Python.
             </p>
           </div>
 
@@ -229,26 +228,6 @@ export default function JobFinderLanding() {
             </div>
             <p className="text-xs text-gray-500">
               Searches for Data Analyst jobs in San Francisco or remote positions.
-            </p>
-          </div>
-
-          {/* Exclusion Filters */}
-          <div className="border-2 border-black p-6 bg-white">
-            <div className="inline-block mb-4 px-3 py-1 border-2 border-black bg-red-600 text-white text-xs font-mono font-bold">
-              FILTERING
-            </div>
-            <h3 className="text-xl font-bold mb-3">Exclusion Filters</h3>
-            <p className="text-sm text-gray-600 mb-4">
-              Use <code className="bg-gray-100 px-1 py-0.5 text-xs font-mono">-</code> to exclude terms you don&apos;t want:
-              senior roles, specific locations, or keywords that don&apos;t match your criteria.
-            </p>
-            <div className="bg-gray-50 border border-gray-300 p-3 mb-3">
-              <code className="text-xs font-mono text-gray-800 break-all">
-                &quot;Marketing Manager&quot; -Senior -Director -&quot;New York&quot;
-              </code>
-            </div>
-            <p className="text-xs text-gray-500">
-              Marketing Manager roles excluding senior, director levels, and New York location.
             </p>
           </div>
 
@@ -302,10 +281,6 @@ export default function JobFinderLanding() {
             <div className="border-2 border-black p-4 bg-white">
               <div className="text-lg font-bold mb-1">Jobvite</div>
               <div className="text-xs font-mono text-gray-500">jobvite.com</div>
-            </div>
-            <div className="border-2 border-black p-4 bg-white">
-              <div className="text-lg font-bold mb-1">Custom URLs</div>
-              <div className="text-xs font-mono text-gray-500">Add your own</div>
             </div>
           </div>
         </div>
