@@ -14,6 +14,24 @@ interface SearchQuery {
   category: 'recent' | 'platform' | 'location' | 'skill' | 'advanced' | 'alternative';
 }
 
+interface PopularSearch {
+  label: string;
+  title: string;
+  aliases: string[];
+}
+
+const popularSearches: PopularSearch[] = [
+  { label: 'Software Engineer', title: 'Software Engineer', aliases: ['SWE', 'Software Developer'] },
+  { label: 'Data Engineer', title: 'Data Engineer', aliases: ['Data Infrastructure Engineer', 'Analytics Engineer'] },
+  { label: 'AI Engineer', title: 'AI Engineer', aliases: ['Artificial Intelligence Engineer', 'ML Engineer', 'Machine Learning Engineer'] },
+  { label: 'Data Analyst', title: 'Data Analyst', aliases: ['BI Analyst', 'Business Intelligence Analyst'] },
+  { label: 'DevOps', title: 'DevOps Engineer', aliases: ['SRE', 'Site Reliability Engineer', 'Platform Engineer'] },
+  { label: 'Data Scientist', title: 'Data Scientist', aliases: ['Applied Scientist', 'Research Scientist'] },
+  { label: 'Product Manager', title: 'Product Manager', aliases: ['PM', 'Product Lead', 'Product Owner'] },
+  { label: 'Cybersecurity', title: 'Cybersecurity Engineer', aliases: ['Security Engineer', 'InfoSec Engineer', 'Security Analyst'] },
+  { label: 'UX Researcher', title: 'UX Researcher', aliases: ['User Researcher', 'Design Researcher'] },
+];
+
 function JobFinderTryContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -21,6 +39,8 @@ function JobFinderTryContent() {
 
   // Form state
   const [jobTitle, setJobTitle] = useState('');
+  const [titleAliases, setTitleAliases] = useState<string[]>([]);
+  const [selectedPopularSearch, setSelectedPopularSearch] = useState<string | null>(null);
   const [skills, setSkills] = useState('');
   const [location, setLocation] = useState('');
   const [platforms, setPlatforms] = useState<string[]>(['greenhouse', 'lever', 'workday']);
@@ -47,6 +67,8 @@ function JobFinderTryContent() {
 
     if (title && !isLoaded) {
       setJobTitle(title);
+      const aliasesParam = searchParams.get('aliases');
+      setTitleAliases(aliasesParam ? aliasesParam.split(',') : []);
       setSkills(skillsParam || '');
       setLocation(locationParam || '');
       setPlatforms(platformsParam ? platformsParam.split(',') : ['greenhouse', 'lever', 'workday']);
@@ -157,6 +179,7 @@ function JobFinderTryContent() {
     if (dateRange !== 'week') params.set('date', dateRange);
     if (remoteOnly) params.set('remote', 'true');
     if (includeLinkedIn) params.set('linkedin', 'true');
+    if (titleAliases.length > 0) params.set('aliases', titleAliases.join(','));
 
     // Update URL without page reload
     router.push(`/job-finder/try?${params.toString()}`, { scroll: false });
@@ -168,6 +191,11 @@ function JobFinderTryContent() {
     const platformSites = platforms.map(p => platformUrls[p]).join(' OR ');
 
     const skillsArray = skills.split(',').map(s => s.trim()).filter(Boolean);
+
+    // Build title filter with aliases for broader matching
+    const titleFilter = titleAliases.length > 0
+      ? `("${jobTitle}" OR ${titleAliases.map(a => `"${a}"`).join(' OR ')})`
+      : `"${jobTitle}"`;
 
     // Helper functions for readable descriptions
     const getPlatformNames = () => {
@@ -188,7 +216,7 @@ function JobFinderTryContent() {
     if (platforms.length > 0) {
       const q1 = [
         `(${platformSites})`,
-        `"${jobTitle}"`,
+        titleFilter,
         locationFilter,
         dateFilter,
       ].filter(Boolean).join(' ');
@@ -207,7 +235,7 @@ function JobFinderTryContent() {
       const skillsQuery = skillsArray.map(s => `"${s}"`).join(' OR ');
       const q2 = [
         platforms.length > 0 ? `(${platformSites})` : '',
-        `"${jobTitle}"`,
+        titleFilter,
         `(${skillsQuery})`,
         locationFilter,
         dateFilter,
@@ -227,7 +255,7 @@ function JobFinderTryContent() {
       platforms.slice(0, 2).forEach((platform) => {
         const q = [
           platformUrls[platform],
-          `"${jobTitle}"`,
+          titleFilter,
           locationFilter,
           dateFilter,
         ].filter(Boolean).join(' ');
@@ -248,7 +276,7 @@ function JobFinderTryContent() {
       const companyQuery = companyArray.map(c => `"${c}"`).join(' OR ');
       const q5 = [
         platforms.length > 0 ? `(${platformSites})` : '',
-        `"${jobTitle}"`,
+        titleFilter,
         `(${companyQuery})`,
         locationFilter,
         dateFilter,
@@ -268,7 +296,7 @@ function JobFinderTryContent() {
       const todayDate = new Date().toISOString().split('T')[0];
       const q6 = [
         platforms.length > 0 ? `(${platformSites})` : '',
-        `"${jobTitle}"`,
+        titleFilter,
         locationFilter,
         `after:${todayDate}`,
       ].filter(Boolean).join(' ');
@@ -284,7 +312,7 @@ function JobFinderTryContent() {
 
     // Query 7: Broad Search (no ATS filter)
     const q7 = [
-      `"${jobTitle}"`,
+      titleFilter,
       skillsArray.length > 0 ? `(${skillsArray.map(s => `"${s}"`).join(' OR ')})` : '',
       locationFilter,
       dateFilter,
@@ -302,7 +330,7 @@ function JobFinderTryContent() {
     if (!remoteOnly && location.trim()) {
       const q8 = [
         platforms.length > 0 ? `(${platformSites})` : '',
-        `"${jobTitle}"`,
+        titleFilter,
         '("remote" OR "work from home")',
         dateFilter,
       ].filter(Boolean).join(' ');
@@ -319,7 +347,7 @@ function JobFinderTryContent() {
     // Query: Startup Job Boards
     const startupQ = [
       '(site:workatastartup.com OR site:wellfound.com/jobs OR site:builtin.com/job/)',
-      `"${jobTitle}"`,
+      titleFilter,
       locationFilter,
       dateFilter,
     ].filter(Boolean).join(' ');
@@ -337,7 +365,7 @@ function JobFinderTryContent() {
       // Query: LinkedIn Jobs (X-Ray)
       const linkedinQ = [
         'site:linkedin.com/jobs/view',
-        `"${jobTitle}"`,
+        titleFilter,
         locationFilter,
         dateFilter,
       ].filter(Boolean).join(' ');
@@ -354,7 +382,7 @@ function JobFinderTryContent() {
       const linkedinPostsQ = [
         'site:linkedin.com/posts/',
         `("hiring" OR "we're hiring" OR "join our team" OR "open role")`,
-        `"${jobTitle}"`,
+        titleFilter,
         locationFilter,
         dateFilter,
       ].filter(Boolean).join(' ');
@@ -370,6 +398,9 @@ function JobFinderTryContent() {
 
     posthog?.capture('queries_generated', {
       job_title: jobTitle,
+      title_aliases: titleAliases,
+      has_aliases: titleAliases.length > 0,
+      used_popular_search: selectedPopularSearch,
       platforms: platforms,
       date_range: dateRange,
       has_skills: skills.trim().length > 0,
@@ -409,6 +440,8 @@ function JobFinderTryContent() {
     posthog?.capture('search_reset');
     // Full reset - clear everything and go back to /try
     setJobTitle('');
+    setTitleAliases([]);
+    setSelectedPopularSearch(null);
     setSkills('');
     setLocation('');
     setPlatforms(['greenhouse', 'lever', 'workday']);
@@ -437,6 +470,37 @@ function JobFinderTryContent() {
             <h2 className="text-2xl font-bold font-mono mb-6">Build Your Job Search Queries</h2>
 
             <div className="space-y-6">
+              {/* Popular Searches */}
+              <div>
+                <label className="block text-sm font-mono font-bold mb-2">
+                  POPULAR SEARCHES
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {popularSearches.map((search) => (
+                    <button
+                      key={search.label}
+                      onClick={() => {
+                        setJobTitle(search.title);
+                        setTitleAliases(search.aliases);
+                        setSelectedPopularSearch(search.label);
+                        posthog?.capture('popular_search_selected', {
+                          title: search.title,
+                          aliases: search.aliases,
+                        });
+                      }}
+                      className={`px-3 py-2 border-2 font-mono text-xs font-bold transition-colors ${
+                        jobTitle === search.title && titleAliases.length > 0
+                          ? 'border-black bg-black text-white'
+                          : 'border-gray-300 bg-white text-black hover:border-black'
+                      }`}
+                    >
+                      {search.label}
+                    </button>
+                  ))}
+                </div>
+                <p className="text-xs text-gray-600 mt-1">Quick-fill with keyword variations included (e.g., &quot;SWE&quot; for Software Engineer)</p>
+              </div>
+
               {/* Job Title */}
               <div>
                 <label className="block text-sm font-mono font-bold mb-2">
@@ -445,11 +509,21 @@ function JobFinderTryContent() {
                 <input
                   type="text"
                   value={jobTitle}
-                  onChange={(e) => setJobTitle(e.target.value)}
+                  onChange={(e) => {
+                    setJobTitle(e.target.value);
+                    setTitleAliases([]);
+                    setSelectedPopularSearch(null);
+                  }}
                   placeholder="e.g., Software Engineer, Product Manager, Data Analyst"
                   className="w-full px-4 py-3 border-2 border-black font-mono text-sm focus:outline-none focus:ring-2 focus:ring-black"
                 />
-                <p className="text-xs text-gray-600 mt-1">Use exact title variations you want to find</p>
+                {titleAliases.length > 0 ? (
+                  <p className="text-xs text-gray-600 mt-1">
+                    Also searching: {titleAliases.join(', ')}
+                  </p>
+                ) : (
+                  <p className="text-xs text-gray-600 mt-1">Use exact title variations you want to find, or pick a popular search above</p>
+                )}
               </div>
 
               {/* Skills */}
