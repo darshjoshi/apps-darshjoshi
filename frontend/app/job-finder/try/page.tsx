@@ -50,6 +50,9 @@ function JobFinderTryContent() {
   const [includeLinkedIn, setIncludeLinkedIn] = useState(false);
   const [showLinkedInDisclaimer, setShowLinkedInDisclaimer] = useState(false);
 
+  // Welcome popup state
+  const [showWelcome, setShowWelcome] = useState(false);
+
   // Results state
   const [queries, setQueries] = useState<SearchQuery[]>([]);
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -91,6 +94,22 @@ function JobFinderTryContent() {
       setIsLoaded(true);
     }
   }, [searchParams, isLoaded]);
+
+  // Show welcome popup max 3 times per user
+  useEffect(() => {
+    const STORAGE_KEY = 'job-finder-welcome-count';
+    const count = parseInt(localStorage.getItem(STORAGE_KEY) || '0', 10);
+    if (count < 3) {
+      setShowWelcome(true);
+      localStorage.setItem(STORAGE_KEY, String(count + 1));
+      posthog?.capture('welcome_popup_shown', { show_count: count + 1 });
+    }
+  }, [posthog]);
+
+  const dismissWelcome = () => {
+    setShowWelcome(false);
+    posthog?.capture('welcome_popup_dismissed');
+  };
 
   const platformUrls: Record<string, string> = {
     greenhouse: 'site:greenhouse.io',
@@ -848,6 +867,70 @@ function JobFinderTryContent() {
           </div>
         </section>
       )}
+      {/* Welcome Popup */}
+      {showWelcome && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="border-2 border-black bg-white p-6 max-w-lg mx-4">
+            <div className="inline-block px-2 py-0.5 bg-black text-white text-xs font-mono font-bold mb-3">
+              QUICK START GUIDE
+            </div>
+            <h3 className="text-xl font-bold mb-4">Get the most out of X-Ray Search</h3>
+
+            <div className="space-y-4 text-sm text-gray-700 mb-6">
+              <div className="flex items-start gap-3">
+                <span className="shrink-0 w-6 h-6 flex items-center justify-center border-2 border-black bg-black text-white text-xs font-mono font-bold">1</span>
+                <p>
+                  <strong>See your role in the Popular Searches?</strong> Click it. It auto-fills your title with keyword
+                  variations that recruiters actually search for (e.g., &quot;SWE&quot; for Software Engineer, &quot;ML Engineer&quot; for AI Engineer).
+                </p>
+              </div>
+
+              <div className="flex items-start gap-3">
+                <span className="shrink-0 w-6 h-6 flex items-center justify-center border-2 border-black bg-black text-white text-xs font-mono font-bold">2</span>
+                <p>
+                  <strong>Start simple.</strong> Just your job title + ATS platforms + recency is enough. Only add skills,
+                  location, or company filters when you have too many results and want to dial down.
+                </p>
+              </div>
+
+              <div className="flex items-start gap-3">
+                <span className="shrink-0 w-6 h-6 flex items-center justify-center border-2 border-black bg-black text-white text-xs font-mono font-bold">3</span>
+                <p>
+                  <strong>LinkedIn is experimental.</strong> You can enable it below the ATS platforms. It searches
+                  LinkedIn jobs and hiring posts via Google — works best when you&apos;re logged into LinkedIn in your browser.
+                  Results may vary.
+                </p>
+              </div>
+
+              <div className="flex items-start gap-3">
+                <span className="shrink-0 w-6 h-6 flex items-center justify-center border-2 border-black bg-black text-white text-xs font-mono font-bold">4</span>
+                <p>
+                  <strong>Share your experience!</strong> Found a great job through X-Ray? Something broken? Want to
+                  collaborate on new features? Connect with me on{' '}
+                  <a
+                    href="https://www.linkedin.com/in/darshjoshi"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => posthog?.capture('welcome_linkedin_clicked')}
+                    className="underline font-bold hover:text-gray-500 transition-colors"
+                  >
+                    LinkedIn
+                  </a>
+                  {' '}— I&apos;d love to hear from you.
+                </p>
+              </div>
+            </div>
+
+            <button
+              onClick={dismissWelcome}
+              className="w-full px-4 py-3 border-2 border-black bg-black text-white font-mono font-bold text-sm hover:bg-white hover:text-black transition-colors"
+            >
+              GOT IT, LET&apos;S GO
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* LinkedIn Disclaimer Modal */}
       {showLinkedInDisclaimer && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
