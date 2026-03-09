@@ -11,8 +11,26 @@ interface SearchQuery {
   title: string;
   description: string;
   query: string;
-  category: 'recent' | 'platform' | 'location' | 'skill' | 'advanced';
+  category: 'recent' | 'platform' | 'location' | 'skill' | 'advanced' | 'alternative';
 }
+
+interface PopularSearch {
+  label: string;
+  title: string;
+  aliases: string[];
+}
+
+const popularSearches: PopularSearch[] = [
+  { label: 'Software Engineer', title: 'Software Engineer', aliases: ['SWE', 'Software Developer'] },
+  { label: 'Data Engineer', title: 'Data Engineer', aliases: ['Data Infrastructure Engineer', 'Analytics Engineer'] },
+  { label: 'AI Engineer', title: 'AI Engineer', aliases: ['Artificial Intelligence Engineer', 'ML Engineer', 'Machine Learning Engineer'] },
+  { label: 'Data Analyst', title: 'Data Analyst', aliases: ['BI Analyst', 'Business Intelligence Analyst'] },
+  { label: 'DevOps', title: 'DevOps Engineer', aliases: ['SRE', 'Site Reliability Engineer', 'Platform Engineer'] },
+  { label: 'Data Scientist', title: 'Data Scientist', aliases: ['Applied Scientist', 'Research Scientist'] },
+  { label: 'Product Manager', title: 'Product Manager', aliases: ['PM', 'Product Lead', 'Product Owner'] },
+  { label: 'Cybersecurity', title: 'Cybersecurity Engineer', aliases: ['Security Engineer', 'InfoSec Engineer', 'Security Analyst'] },
+  { label: 'UX Researcher', title: 'UX Researcher', aliases: ['User Researcher', 'Design Researcher'] },
+];
 
 function JobFinderTryContent() {
   const router = useRouter();
@@ -21,12 +39,19 @@ function JobFinderTryContent() {
 
   // Form state
   const [jobTitle, setJobTitle] = useState('');
+  const [titleAliases, setTitleAliases] = useState<string[]>([]);
+  const [selectedPopularSearch, setSelectedPopularSearch] = useState<string | null>(null);
   const [skills, setSkills] = useState('');
   const [location, setLocation] = useState('');
   const [platforms, setPlatforms] = useState<string[]>(['greenhouse', 'lever', 'workday']);
   const [companies, setCompanies] = useState('');
   const [dateRange, setDateRange] = useState('week');
   const [remoteOnly, setRemoteOnly] = useState(false);
+  const [includeLinkedIn, setIncludeLinkedIn] = useState(false);
+  const [showLinkedInDisclaimer, setShowLinkedInDisclaimer] = useState(false);
+
+  // Welcome popup state
+  const [showWelcome, setShowWelcome] = useState(false);
 
   // Results state
   const [queries, setQueries] = useState<SearchQuery[]>([]);
@@ -45,12 +70,16 @@ function JobFinderTryContent() {
 
     if (title && !isLoaded) {
       setJobTitle(title);
+      const aliasesParam = searchParams.get('aliases');
+      setTitleAliases(aliasesParam ? aliasesParam.split(',') : []);
       setSkills(skillsParam || '');
       setLocation(locationParam || '');
       setPlatforms(platformsParam ? platformsParam.split(',') : ['greenhouse', 'lever', 'workday']);
       setCompanies(companiesParam || '');
       setDateRange(date || 'week');
       setRemoteOnly(remote === 'true');
+      const linkedinParam = searchParams.get('linkedin');
+      setIncludeLinkedIn(linkedinParam === 'true');
 
       setIsLoaded(true);
 
@@ -66,12 +95,46 @@ function JobFinderTryContent() {
     }
   }, [searchParams, isLoaded]);
 
+  // Show welcome popup max 3 times per user
+  useEffect(() => {
+    const STORAGE_KEY = 'job-finder-welcome-count';
+    const count = parseInt(localStorage.getItem(STORAGE_KEY) || '0', 10);
+    if (count < 3) {
+      setShowWelcome(true);
+      localStorage.setItem(STORAGE_KEY, String(count + 1));
+      posthog?.capture('welcome_popup_shown', { show_count: count + 1 });
+    }
+  }, [posthog]);
+
+  const dismissWelcome = () => {
+    setShowWelcome(false);
+    posthog?.capture('welcome_popup_dismissed');
+  };
+
   const platformUrls: Record<string, string> = {
-    greenhouse: 'site:greenhouse.io OR site:boards.greenhouse.io OR site:job-boards.greenhouse.io',
+    greenhouse: 'site:greenhouse.io',
     lever: 'site:jobs.lever.co',
     workday: 'site:myworkdayjobs.com',
     taleo: 'site:taleo.net/careersection',
     jobvite: 'site:jobs.jobvite.com',
+    icims: 'site:icims.com',
+    smartrecruiters: 'site:jobs.smartrecruiters.com',
+    ashby: 'site:jobs.ashbyhq.com',
+    workable: 'site:apply.workable.com',
+    rippling: 'site:ats.rippling.com',
+  };
+
+  const platformLabels: Record<string, string> = {
+    greenhouse: 'Greenhouse',
+    lever: 'Lever',
+    workday: 'Workday',
+    taleo: 'Taleo',
+    jobvite: 'Jobvite',
+    icims: 'iCIMS',
+    smartrecruiters: 'SmartRecruiters',
+    ashby: 'Ashby',
+    workable: 'Workable',
+    rippling: 'Rippling',
   };
 
   const dateRanges = [
@@ -81,6 +144,19 @@ function JobFinderTryContent() {
     { value: 'month', label: 'Month' },
     { value: 'none', label: 'Any Time' },
   ];
+
+  const tbsParams: Record<string, string> = {
+    today: '&tbs=qdr:d',
+    '3days': '&tbs=qdr:d3',
+    week: '&tbs=qdr:w',
+    month: '&tbs=qdr:m',
+    none: '',
+  };
+
+  const getGoogleUrl = (query: string): string => {
+    const base = `https://www.google.com/search?q=${encodeURIComponent(query)}`;
+    return base + (tbsParams[dateRange] || '');
+  };
 
   const getDateFilter = (): string => {
     const today = new Date();
@@ -121,6 +197,8 @@ function JobFinderTryContent() {
     if (companies) params.set('companies', companies);
     if (dateRange !== 'week') params.set('date', dateRange);
     if (remoteOnly) params.set('remote', 'true');
+    if (includeLinkedIn) params.set('linkedin', 'true');
+    if (titleAliases.length > 0) params.set('aliases', titleAliases.join(','));
 
     // Update URL without page reload
     router.push(`/job-finder/try?${params.toString()}`, { scroll: false });
@@ -133,9 +211,14 @@ function JobFinderTryContent() {
 
     const skillsArray = skills.split(',').map(s => s.trim()).filter(Boolean);
 
+    // Build title filter with aliases for broader matching
+    const titleFilter = titleAliases.length > 0
+      ? `("${jobTitle}" OR ${titleAliases.map(a => `"${a}"`).join(' OR ')})`
+      : `"${jobTitle}"`;
+
     // Helper functions for readable descriptions
     const getPlatformNames = () => {
-      return platforms.map(p => p.charAt(0).toUpperCase() + p.slice(1)).join(', ');
+      return platforms.map(p => platformLabels[p] || p).join(', ');
     };
     const getDateRangeLabel = () => dateRanges.find(r => r.value === dateRange)?.label || 'Any Time';
 
@@ -152,7 +235,7 @@ function JobFinderTryContent() {
     if (platforms.length > 0) {
       const q1 = [
         `(${platformSites})`,
-        `"${jobTitle}"`,
+        titleFilter,
         locationFilter,
         dateFilter,
       ].filter(Boolean).join(' ');
@@ -171,7 +254,7 @@ function JobFinderTryContent() {
       const skillsQuery = skillsArray.map(s => `"${s}"`).join(' OR ');
       const q2 = [
         platforms.length > 0 ? `(${platformSites})` : '',
-        `"${jobTitle}"`,
+        titleFilter,
         `(${skillsQuery})`,
         locationFilter,
         dateFilter,
@@ -191,15 +274,15 @@ function JobFinderTryContent() {
       platforms.slice(0, 2).forEach((platform) => {
         const q = [
           platformUrls[platform],
-          `"${jobTitle}"`,
+          titleFilter,
           locationFilter,
           dateFilter,
         ].filter(Boolean).join(' ');
 
         generatedQueries.push({
           id: `platform-${platform}`,
-          title: `${platform.charAt(0).toUpperCase() + platform.slice(1)}-Only Search`,
-          description: `Searches only ${platform.charAt(0).toUpperCase() + platform.slice(1)} for focused results from this ATS.`,
+          title: `${platformLabels[platform] || platform}-Only Search`,
+          description: `Searches only ${platformLabels[platform] || platform} for focused results from this ATS.`,
           query: q,
           category: 'platform',
         });
@@ -212,7 +295,7 @@ function JobFinderTryContent() {
       const companyQuery = companyArray.map(c => `"${c}"`).join(' OR ');
       const q5 = [
         platforms.length > 0 ? `(${platformSites})` : '',
-        `"${jobTitle}"`,
+        titleFilter,
         `(${companyQuery})`,
         locationFilter,
         dateFilter,
@@ -232,7 +315,7 @@ function JobFinderTryContent() {
       const todayDate = new Date().toISOString().split('T')[0];
       const q6 = [
         platforms.length > 0 ? `(${platformSites})` : '',
-        `"${jobTitle}"`,
+        titleFilter,
         locationFilter,
         `after:${todayDate}`,
       ].filter(Boolean).join(' ');
@@ -248,7 +331,7 @@ function JobFinderTryContent() {
 
     // Query 7: Broad Search (no ATS filter)
     const q7 = [
-      `"${jobTitle}"`,
+      titleFilter,
       skillsArray.length > 0 ? `(${skillsArray.map(s => `"${s}"`).join(' OR ')})` : '',
       locationFilter,
       dateFilter,
@@ -266,7 +349,7 @@ function JobFinderTryContent() {
     if (!remoteOnly && location.trim()) {
       const q8 = [
         platforms.length > 0 ? `(${platformSites})` : '',
-        `"${jobTitle}"`,
+        titleFilter,
         '("remote" OR "work from home")',
         dateFilter,
       ].filter(Boolean).join(' ');
@@ -280,13 +363,69 @@ function JobFinderTryContent() {
       });
     }
 
+    // Query: Startup Job Boards
+    const startupQ = [
+      '(site:workatastartup.com OR site:wellfound.com/jobs OR site:builtin.com/job/)',
+      titleFilter,
+      locationFilter,
+      dateFilter,
+    ].filter(Boolean).join(' ');
+
+    generatedQueries.push({
+      id: 'startup-boards',
+      title: 'Startup Job Boards',
+      description: 'Searches Y Combinator\'s Work at a Startup, Wellfound (AngelList), and BuiltIn. Great for startup and scale-up roles.',
+      query: startupQ,
+      category: 'alternative',
+    });
+
+    // LinkedIn Queries (only when opted in)
+    if (includeLinkedIn) {
+      // Query: LinkedIn Jobs (X-Ray)
+      const linkedinQ = [
+        'site:linkedin.com/jobs/view',
+        titleFilter,
+        locationFilter,
+        dateFilter,
+      ].filter(Boolean).join(' ');
+
+      generatedQueries.push({
+        id: 'linkedin-xray',
+        title: 'LinkedIn Jobs (X-Ray)',
+        description: 'Searches LinkedIn job postings via Google, bypassing the LinkedIn login wall. See public job listings without an account.',
+        query: linkedinQ,
+        category: 'alternative',
+      });
+
+      // Query: LinkedIn Posts (Hiring Announcements)
+      const linkedinPostsQ = [
+        'site:linkedin.com/posts/',
+        `("hiring" OR "we're hiring" OR "join our team" OR "open role")`,
+        titleFilter,
+        locationFilter,
+        dateFilter,
+      ].filter(Boolean).join(' ');
+
+      generatedQueries.push({
+        id: 'linkedin-posts',
+        title: 'LinkedIn Posts (Hiring Announcements)',
+        description: 'Finds hiring managers and recruiters posting about openings on their LinkedIn feed. These informal announcements often appear before formal listings.',
+        query: linkedinPostsQ,
+        category: 'alternative',
+      });
+    }
+
     posthog?.capture('queries_generated', {
       job_title: jobTitle,
+      title_aliases: titleAliases,
+      has_aliases: titleAliases.length > 0,
+      used_popular_search: selectedPopularSearch,
       platforms: platforms,
       date_range: dateRange,
       has_skills: skills.trim().length > 0,
       has_location: location.trim().length > 0,
       remote_only: remoteOnly,
+      include_linkedin: includeLinkedIn,
       has_companies: companies.trim().length > 0,
       query_count: generatedQueries.length,
     });
@@ -320,12 +459,15 @@ function JobFinderTryContent() {
     posthog?.capture('search_reset');
     // Full reset - clear everything and go back to /try
     setJobTitle('');
+    setTitleAliases([]);
+    setSelectedPopularSearch(null);
     setSkills('');
     setLocation('');
     setPlatforms(['greenhouse', 'lever', 'workday']);
     setCompanies('');
     setDateRange('week');
     setRemoteOnly(false);
+    setIncludeLinkedIn(false);
     setQueries([]);
     router.push('/job-finder/try');
   };
@@ -347,6 +489,37 @@ function JobFinderTryContent() {
             <h2 className="text-2xl font-bold font-mono mb-6">Build Your Job Search Queries</h2>
 
             <div className="space-y-6">
+              {/* Popular Searches */}
+              <div>
+                <label className="block text-sm font-mono font-bold mb-2">
+                  POPULAR SEARCHES
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {popularSearches.map((search) => (
+                    <button
+                      key={search.label}
+                      onClick={() => {
+                        setJobTitle(search.title);
+                        setTitleAliases(search.aliases);
+                        setSelectedPopularSearch(search.label);
+                        posthog?.capture('popular_search_selected', {
+                          title: search.title,
+                          aliases: search.aliases,
+                        });
+                      }}
+                      className={`px-3 py-2 border-2 font-mono text-xs font-bold transition-colors ${
+                        jobTitle === search.title && titleAliases.length > 0
+                          ? 'border-black bg-black text-white'
+                          : 'border-gray-300 bg-white text-black hover:border-black'
+                      }`}
+                    >
+                      {search.label}
+                    </button>
+                  ))}
+                </div>
+                <p className="text-xs text-gray-600 mt-1">Quick-fill with keyword variations included (e.g., &quot;SWE&quot; for Software Engineer)</p>
+              </div>
+
               {/* Job Title */}
               <div>
                 <label className="block text-sm font-mono font-bold mb-2">
@@ -355,11 +528,21 @@ function JobFinderTryContent() {
                 <input
                   type="text"
                   value={jobTitle}
-                  onChange={(e) => setJobTitle(e.target.value)}
+                  onChange={(e) => {
+                    setJobTitle(e.target.value);
+                    setTitleAliases([]);
+                    setSelectedPopularSearch(null);
+                  }}
                   placeholder="e.g., Software Engineer, Product Manager, Data Analyst"
                   className="w-full px-4 py-3 border-2 border-black font-mono text-sm focus:outline-none focus:ring-2 focus:ring-black"
                 />
-                <p className="text-xs text-gray-600 mt-1">Use exact title variations you want to find</p>
+                {titleAliases.length > 0 ? (
+                  <p className="text-xs text-gray-600 mt-1">
+                    Also searching: {titleAliases.join(', ')}
+                  </p>
+                ) : (
+                  <p className="text-xs text-gray-600 mt-1">Use exact title variations you want to find, or pick a popular search above</p>
+                )}
               </div>
 
               {/* Skills */}
@@ -415,8 +598,8 @@ function JobFinderTryContent() {
                 <label className="block text-sm font-mono font-bold mb-2">
                   TARGET ATS PLATFORMS
                 </label>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                  {['greenhouse', 'lever', 'workday', 'taleo', 'jobvite'].map((platform) => (
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                  {Object.keys(platformUrls).map((platform) => (
                     <label
                       key={platform}
                       className={`flex items-center gap-2 px-4 py-3 border-2 cursor-pointer transition-colors ${
@@ -431,11 +614,39 @@ function JobFinderTryContent() {
                         onChange={() => togglePlatform(platform)}
                         className="w-4 h-4"
                       />
-                      <span className="text-sm font-mono font-bold uppercase">{platform}</span>
+                      <span className="text-sm font-mono font-bold">{platformLabels[platform]}</span>
                     </label>
                   ))}
                 </div>
-                <p className="text-xs text-gray-600 mt-1">Select ATS platforms to search. More platforms = more results.</p>
+                <p className="text-xs text-gray-600 mt-1">Select ATS platforms to search. More platforms = more results. Selecting 5+ may produce longer queries.</p>
+              </div>
+
+              {/* LinkedIn (Experimental) */}
+              <div>
+                <label className="block text-sm font-mono font-bold mb-2">
+                  LINKEDIN SEARCH (EXPERIMENTAL)
+                </label>
+                <button
+                  onClick={() => {
+                    if (!includeLinkedIn) {
+                      posthog?.capture('linkedin_disclaimer_shown');
+                      setShowLinkedInDisclaimer(true);
+                    } else {
+                      posthog?.capture('linkedin_toggled', { enabled: false });
+                      setIncludeLinkedIn(false);
+                    }
+                  }}
+                  className={`px-4 py-3 border-2 font-mono text-sm font-bold transition-colors ${
+                    includeLinkedIn
+                      ? 'border-black bg-black text-white'
+                      : 'border-gray-300 bg-white text-black hover:border-black'
+                  }`}
+                >
+                  {includeLinkedIn ? 'LINKEDIN ENABLED' : 'ENABLE LINKEDIN QUERIES'}
+                </button>
+                <p className="text-xs text-gray-600 mt-1">
+                  Adds LinkedIn job listings and hiring post searches. Requires LinkedIn login for best results.
+                </p>
               </div>
 
               {/* Date Range - Custom UI */}
@@ -458,7 +669,7 @@ function JobFinderTryContent() {
                     </button>
                   ))}
                 </div>
-                <p className="text-xs text-gray-600 mt-1">Uses Google&apos;s <code className="bg-gray-100 px-1">after:</code> operator which filters by page index date, not posting date — results may vary</p>
+                <p className="text-xs text-gray-600 mt-1">Google&apos;s native time filter is auto-applied when you click &quot;SEARCH GOOGLE&quot;. The <code className="bg-gray-100 px-1">after:</code> operator in the query text provides secondary reinforcement.</p>
               </div>
 
               {/* Companies (Optional) */}
@@ -544,11 +755,16 @@ function JobFinderTryContent() {
                   </span>
                 )}
                 <span className="px-2 py-1 bg-gray-100 border border-gray-300 text-xs font-mono">
-                  <strong>Platforms:</strong> {platforms.map(p => p.charAt(0).toUpperCase() + p.slice(1)).join(', ')}
+                  <strong>Platforms:</strong> {platforms.map(p => platformLabels[p] || p).join(', ')}
                 </span>
                 <span className="px-2 py-1 bg-gray-100 border border-gray-300 text-xs font-mono">
                   <strong>Recency:</strong> {dateRanges.find(r => r.value === dateRange)?.label}
                 </span>
+                {includeLinkedIn && (
+                  <span className="px-2 py-1 bg-gray-100 border border-gray-300 text-xs font-mono">
+                    <strong>LinkedIn:</strong> Enabled
+                  </span>
+                )}
                 {companies && (
                   <span className="px-2 py-1 bg-gray-100 border border-gray-300 text-xs font-mono">
                     <strong>Companies:</strong> {companies}
@@ -597,7 +813,7 @@ function JobFinderTryContent() {
                     )}
                   </button>
                   <a
-                    href={`https://www.google.com/search?q=${encodeURIComponent(q.query)}`}
+                    href={getGoogleUrl(q.query)}
                     target="_blank"
                     rel="noopener noreferrer"
                     onClick={() => posthog?.capture('query_searched_google', {
@@ -645,11 +861,115 @@ function JobFinderTryContent() {
               </li>
               <li className="flex items-start">
                 <span className="mr-2">→</span>
-                <span>For more reliable date filtering, click &quot;SEARCH GOOGLE&quot; then use Google&apos;s built-in Tools → &quot;Past week&quot; or &quot;Past 24 hours&quot; filter</span>
+                <span>&quot;SEARCH GOOGLE&quot; links auto-apply Google&apos;s native time filter for more reliable date filtering than the <code className="bg-gray-100 px-1">after:</code> operator alone</span>
               </li>
             </ul>
           </div>
         </section>
+      )}
+      {/* Welcome Popup */}
+      {showWelcome && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="border-2 border-black bg-white p-6 max-w-lg mx-4">
+            <div className="inline-block px-2 py-0.5 bg-black text-white text-xs font-mono font-bold mb-3">
+              QUICK START GUIDE
+            </div>
+            <h3 className="text-xl font-bold mb-4">Get the most out of X-Ray Search</h3>
+
+            <div className="space-y-4 text-sm text-gray-700 mb-6">
+              <div className="flex items-start gap-3">
+                <span className="shrink-0 w-6 h-6 flex items-center justify-center border-2 border-black bg-black text-white text-xs font-mono font-bold">1</span>
+                <p>
+                  <strong>See your role in the Popular Searches?</strong> Click it. It auto-fills your title with keyword
+                  variations that recruiters actually search for (e.g., &quot;SWE&quot; for Software Engineer, &quot;ML Engineer&quot; for AI Engineer).
+                </p>
+              </div>
+
+              <div className="flex items-start gap-3">
+                <span className="shrink-0 w-6 h-6 flex items-center justify-center border-2 border-black bg-black text-white text-xs font-mono font-bold">2</span>
+                <p>
+                  <strong>Start simple.</strong> Just your job title + ATS platforms + recency is enough. Only add skills,
+                  location, or company filters when you have too many results and want to dial down.
+                </p>
+              </div>
+
+              <div className="flex items-start gap-3">
+                <span className="shrink-0 w-6 h-6 flex items-center justify-center border-2 border-black bg-black text-white text-xs font-mono font-bold">3</span>
+                <p>
+                  <strong>LinkedIn is experimental.</strong> You can enable it below the ATS platforms. It searches
+                  LinkedIn jobs and hiring posts via Google — works best when you&apos;re logged into LinkedIn in your browser.
+                  Results may vary.
+                </p>
+              </div>
+
+              <div className="flex items-start gap-3">
+                <span className="shrink-0 w-6 h-6 flex items-center justify-center border-2 border-black bg-black text-white text-xs font-mono font-bold">4</span>
+                <p>
+                  <strong>Share your experience!</strong> Found a great job through X-Ray? Something broken? Want to
+                  collaborate on new features? Connect with me on{' '}
+                  <a
+                    href="https://www.linkedin.com/in/darshjoshi"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => posthog?.capture('welcome_linkedin_clicked')}
+                    className="underline font-bold hover:text-gray-500 transition-colors"
+                  >
+                    LinkedIn
+                  </a>
+                  {' '}— I&apos;d love to hear from you.
+                </p>
+              </div>
+            </div>
+
+            <button
+              onClick={dismissWelcome}
+              className="w-full px-4 py-3 border-2 border-black bg-black text-white font-mono font-bold text-sm hover:bg-white hover:text-black transition-colors"
+            >
+              GOT IT, LET&apos;S GO
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* LinkedIn Disclaimer Modal */}
+      {showLinkedInDisclaimer && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="border-2 border-black bg-white p-6 max-w-md mx-4">
+            <div className="inline-block px-2 py-0.5 bg-black text-white text-xs font-mono font-bold mb-3">
+              EXPERIMENTAL
+            </div>
+            <h3 className="text-lg font-bold mb-2">LinkedIn Search Disclaimer</h3>
+            <div className="space-y-3 text-sm text-gray-700 mb-6">
+              <p>LinkedIn search is <strong>experimental</strong>. A few things to know:</p>
+              <ul className="list-disc pl-5 space-y-1">
+                <li>You must be <strong>logged into LinkedIn</strong> in your browser for best results</li>
+                <li>Some results may still show a login prompt</li>
+                <li>LinkedIn may limit the number of results you can view</li>
+              </ul>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  posthog?.capture('linkedin_disclaimer_dismissed');
+                  setShowLinkedInDisclaimer(false);
+                }}
+                className="flex-1 px-4 py-3 border-2 border-gray-300 bg-white text-black font-mono font-bold text-sm hover:border-black transition-colors"
+              >
+                CANCEL
+              </button>
+              <button
+                onClick={() => {
+                  posthog?.capture('linkedin_toggled', { enabled: true });
+                  setIncludeLinkedIn(true);
+                  setShowLinkedInDisclaimer(false);
+                }}
+                className="flex-1 px-4 py-3 border-2 border-black bg-black text-white font-mono font-bold text-sm hover:bg-white hover:text-black transition-colors"
+              >
+                I UNDERSTAND, ENABLE
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </AppLayout>
   );
