@@ -11,7 +11,7 @@ interface SearchQuery {
   title: string;
   description: string;
   query: string;
-  category: 'recent' | 'platform' | 'location' | 'skill' | 'advanced';
+  category: 'recent' | 'platform' | 'location' | 'skill' | 'advanced' | 'alternative';
 }
 
 function JobFinderTryContent() {
@@ -67,11 +67,29 @@ function JobFinderTryContent() {
   }, [searchParams, isLoaded]);
 
   const platformUrls: Record<string, string> = {
-    greenhouse: 'site:greenhouse.io OR site:boards.greenhouse.io OR site:job-boards.greenhouse.io',
+    greenhouse: 'site:greenhouse.io',
     lever: 'site:jobs.lever.co',
     workday: 'site:myworkdayjobs.com',
     taleo: 'site:taleo.net/careersection',
     jobvite: 'site:jobs.jobvite.com',
+    icims: 'site:icims.com',
+    smartrecruiters: 'site:jobs.smartrecruiters.com',
+    ashby: 'site:jobs.ashbyhq.com',
+    workable: 'site:apply.workable.com',
+    rippling: 'site:ats.rippling.com',
+  };
+
+  const platformLabels: Record<string, string> = {
+    greenhouse: 'Greenhouse',
+    lever: 'Lever',
+    workday: 'Workday',
+    taleo: 'Taleo',
+    jobvite: 'Jobvite',
+    icims: 'iCIMS',
+    smartrecruiters: 'SmartRecruiters',
+    ashby: 'Ashby',
+    workable: 'Workable',
+    rippling: 'Rippling',
   };
 
   const dateRanges = [
@@ -81,6 +99,19 @@ function JobFinderTryContent() {
     { value: 'month', label: 'Month' },
     { value: 'none', label: 'Any Time' },
   ];
+
+  const tbsParams: Record<string, string> = {
+    today: '&tbs=qdr:d',
+    '3days': '&tbs=qdr:d3',
+    week: '&tbs=qdr:w',
+    month: '&tbs=qdr:m',
+    none: '',
+  };
+
+  const getGoogleUrl = (query: string): string => {
+    const base = `https://www.google.com/search?q=${encodeURIComponent(query)}`;
+    return base + (tbsParams[dateRange] || '');
+  };
 
   const getDateFilter = (): string => {
     const today = new Date();
@@ -135,7 +166,7 @@ function JobFinderTryContent() {
 
     // Helper functions for readable descriptions
     const getPlatformNames = () => {
-      return platforms.map(p => p.charAt(0).toUpperCase() + p.slice(1)).join(', ');
+      return platforms.map(p => platformLabels[p] || p).join(', ');
     };
     const getDateRangeLabel = () => dateRanges.find(r => r.value === dateRange)?.label || 'Any Time';
 
@@ -198,8 +229,8 @@ function JobFinderTryContent() {
 
         generatedQueries.push({
           id: `platform-${platform}`,
-          title: `${platform.charAt(0).toUpperCase() + platform.slice(1)}-Only Search`,
-          description: `Searches only ${platform.charAt(0).toUpperCase() + platform.slice(1)} for focused results from this ATS.`,
+          title: `${platformLabels[platform] || platform}-Only Search`,
+          description: `Searches only ${platformLabels[platform] || platform} for focused results from this ATS.`,
           query: q,
           category: 'platform',
         });
@@ -279,6 +310,38 @@ function JobFinderTryContent() {
         category: 'location',
       });
     }
+
+    // Query: Startup Job Boards
+    const startupQ = [
+      '(site:workatastartup.com OR site:wellfound.com/jobs OR site:builtin.com/job/)',
+      `"${jobTitle}"`,
+      locationFilter,
+      dateFilter,
+    ].filter(Boolean).join(' ');
+
+    generatedQueries.push({
+      id: 'startup-boards',
+      title: 'Startup Job Boards',
+      description: 'Searches Y Combinator\'s Work at a Startup, Wellfound (AngelList), and BuiltIn. Great for startup and scale-up roles.',
+      query: startupQ,
+      category: 'alternative',
+    });
+
+    // Query: LinkedIn Jobs (X-Ray)
+    const linkedinQ = [
+      'site:linkedin.com/jobs/view',
+      `"${jobTitle}"`,
+      locationFilter,
+      dateFilter,
+    ].filter(Boolean).join(' ');
+
+    generatedQueries.push({
+      id: 'linkedin-xray',
+      title: 'LinkedIn Jobs (X-Ray)',
+      description: 'Searches LinkedIn job postings via Google, bypassing the LinkedIn login wall. See public job listings without an account.',
+      query: linkedinQ,
+      category: 'alternative',
+    });
 
     posthog?.capture('queries_generated', {
       job_title: jobTitle,
@@ -415,8 +478,8 @@ function JobFinderTryContent() {
                 <label className="block text-sm font-mono font-bold mb-2">
                   TARGET ATS PLATFORMS
                 </label>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                  {['greenhouse', 'lever', 'workday', 'taleo', 'jobvite'].map((platform) => (
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                  {Object.keys(platformUrls).map((platform) => (
                     <label
                       key={platform}
                       className={`flex items-center gap-2 px-4 py-3 border-2 cursor-pointer transition-colors ${
@@ -431,11 +494,11 @@ function JobFinderTryContent() {
                         onChange={() => togglePlatform(platform)}
                         className="w-4 h-4"
                       />
-                      <span className="text-sm font-mono font-bold uppercase">{platform}</span>
+                      <span className="text-sm font-mono font-bold">{platformLabels[platform]}</span>
                     </label>
                   ))}
                 </div>
-                <p className="text-xs text-gray-600 mt-1">Select ATS platforms to search. More platforms = more results.</p>
+                <p className="text-xs text-gray-600 mt-1">Select ATS platforms to search. More platforms = more results. Selecting 5+ may produce longer queries.</p>
               </div>
 
               {/* Date Range - Custom UI */}
@@ -458,7 +521,7 @@ function JobFinderTryContent() {
                     </button>
                   ))}
                 </div>
-                <p className="text-xs text-gray-600 mt-1">Uses Google&apos;s <code className="bg-gray-100 px-1">after:</code> operator which filters by page index date, not posting date — results may vary</p>
+                <p className="text-xs text-gray-600 mt-1">Google&apos;s native time filter is auto-applied when you click &quot;SEARCH GOOGLE&quot;. The <code className="bg-gray-100 px-1">after:</code> operator in the query text provides secondary reinforcement.</p>
               </div>
 
               {/* Companies (Optional) */}
@@ -544,7 +607,7 @@ function JobFinderTryContent() {
                   </span>
                 )}
                 <span className="px-2 py-1 bg-gray-100 border border-gray-300 text-xs font-mono">
-                  <strong>Platforms:</strong> {platforms.map(p => p.charAt(0).toUpperCase() + p.slice(1)).join(', ')}
+                  <strong>Platforms:</strong> {platforms.map(p => platformLabels[p] || p).join(', ')}
                 </span>
                 <span className="px-2 py-1 bg-gray-100 border border-gray-300 text-xs font-mono">
                   <strong>Recency:</strong> {dateRanges.find(r => r.value === dateRange)?.label}
@@ -597,7 +660,7 @@ function JobFinderTryContent() {
                     )}
                   </button>
                   <a
-                    href={`https://www.google.com/search?q=${encodeURIComponent(q.query)}`}
+                    href={getGoogleUrl(q.query)}
                     target="_blank"
                     rel="noopener noreferrer"
                     onClick={() => posthog?.capture('query_searched_google', {
@@ -645,7 +708,7 @@ function JobFinderTryContent() {
               </li>
               <li className="flex items-start">
                 <span className="mr-2">→</span>
-                <span>For more reliable date filtering, click &quot;SEARCH GOOGLE&quot; then use Google&apos;s built-in Tools → &quot;Past week&quot; or &quot;Past 24 hours&quot; filter</span>
+                <span>&quot;SEARCH GOOGLE&quot; links auto-apply Google&apos;s native time filter for more reliable date filtering than the <code className="bg-gray-100 px-1">after:</code> operator alone</span>
               </li>
             </ul>
           </div>
