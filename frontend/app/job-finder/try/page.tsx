@@ -27,6 +27,8 @@ function JobFinderTryContent() {
   const [companies, setCompanies] = useState('');
   const [dateRange, setDateRange] = useState('week');
   const [remoteOnly, setRemoteOnly] = useState(false);
+  const [includeLinkedIn, setIncludeLinkedIn] = useState(false);
+  const [showLinkedInDisclaimer, setShowLinkedInDisclaimer] = useState(false);
 
   // Results state
   const [queries, setQueries] = useState<SearchQuery[]>([]);
@@ -51,6 +53,8 @@ function JobFinderTryContent() {
       setCompanies(companiesParam || '');
       setDateRange(date || 'week');
       setRemoteOnly(remote === 'true');
+      const linkedinParam = searchParams.get('linkedin');
+      setIncludeLinkedIn(linkedinParam === 'true');
 
       setIsLoaded(true);
 
@@ -152,6 +156,7 @@ function JobFinderTryContent() {
     if (companies) params.set('companies', companies);
     if (dateRange !== 'week') params.set('date', dateRange);
     if (remoteOnly) params.set('remote', 'true');
+    if (includeLinkedIn) params.set('linkedin', 'true');
 
     // Update URL without page reload
     router.push(`/job-finder/try?${params.toString()}`, { scroll: false });
@@ -327,21 +332,41 @@ function JobFinderTryContent() {
       category: 'alternative',
     });
 
-    // Query: LinkedIn Jobs (X-Ray)
-    const linkedinQ = [
-      'site:linkedin.com/jobs/view',
-      `"${jobTitle}"`,
-      locationFilter,
-      dateFilter,
-    ].filter(Boolean).join(' ');
+    // LinkedIn Queries (only when opted in)
+    if (includeLinkedIn) {
+      // Query: LinkedIn Jobs (X-Ray)
+      const linkedinQ = [
+        'site:linkedin.com/jobs/view',
+        `"${jobTitle}"`,
+        locationFilter,
+        dateFilter,
+      ].filter(Boolean).join(' ');
 
-    generatedQueries.push({
-      id: 'linkedin-xray',
-      title: 'LinkedIn Jobs (X-Ray)',
-      description: 'Searches LinkedIn job postings via Google, bypassing the LinkedIn login wall. See public job listings without an account.',
-      query: linkedinQ,
-      category: 'alternative',
-    });
+      generatedQueries.push({
+        id: 'linkedin-xray',
+        title: 'LinkedIn Jobs (X-Ray)',
+        description: 'Searches LinkedIn job postings via Google, bypassing the LinkedIn login wall. See public job listings without an account.',
+        query: linkedinQ,
+        category: 'alternative',
+      });
+
+      // Query: LinkedIn Posts (Hiring Announcements)
+      const linkedinPostsQ = [
+        'site:linkedin.com/posts/',
+        `("hiring" OR "we're hiring" OR "join our team" OR "open role")`,
+        `"${jobTitle}"`,
+        locationFilter,
+        dateFilter,
+      ].filter(Boolean).join(' ');
+
+      generatedQueries.push({
+        id: 'linkedin-posts',
+        title: 'LinkedIn Posts (Hiring Announcements)',
+        description: 'Finds hiring managers and recruiters posting about openings on their LinkedIn feed. These informal announcements often appear before formal listings.',
+        query: linkedinPostsQ,
+        category: 'alternative',
+      });
+    }
 
     posthog?.capture('queries_generated', {
       job_title: jobTitle,
@@ -350,6 +375,7 @@ function JobFinderTryContent() {
       has_skills: skills.trim().length > 0,
       has_location: location.trim().length > 0,
       remote_only: remoteOnly,
+      include_linkedin: includeLinkedIn,
       has_companies: companies.trim().length > 0,
       query_count: generatedQueries.length,
     });
@@ -389,6 +415,7 @@ function JobFinderTryContent() {
     setCompanies('');
     setDateRange('week');
     setRemoteOnly(false);
+    setIncludeLinkedIn(false);
     setQueries([]);
     router.push('/job-finder/try');
   };
@@ -499,6 +526,34 @@ function JobFinderTryContent() {
                   ))}
                 </div>
                 <p className="text-xs text-gray-600 mt-1">Select ATS platforms to search. More platforms = more results. Selecting 5+ may produce longer queries.</p>
+              </div>
+
+              {/* LinkedIn (Experimental) */}
+              <div>
+                <label className="block text-sm font-mono font-bold mb-2">
+                  LINKEDIN SEARCH (EXPERIMENTAL)
+                </label>
+                <button
+                  onClick={() => {
+                    if (!includeLinkedIn) {
+                      posthog?.capture('linkedin_disclaimer_shown');
+                      setShowLinkedInDisclaimer(true);
+                    } else {
+                      posthog?.capture('linkedin_toggled', { enabled: false });
+                      setIncludeLinkedIn(false);
+                    }
+                  }}
+                  className={`px-4 py-3 border-2 font-mono text-sm font-bold transition-colors ${
+                    includeLinkedIn
+                      ? 'border-black bg-black text-white'
+                      : 'border-gray-300 bg-white text-black hover:border-black'
+                  }`}
+                >
+                  {includeLinkedIn ? 'LINKEDIN ENABLED' : 'ENABLE LINKEDIN QUERIES'}
+                </button>
+                <p className="text-xs text-gray-600 mt-1">
+                  Adds LinkedIn job listings and hiring post searches. Requires LinkedIn login for best results.
+                </p>
               </div>
 
               {/* Date Range - Custom UI */}
@@ -612,6 +667,11 @@ function JobFinderTryContent() {
                 <span className="px-2 py-1 bg-gray-100 border border-gray-300 text-xs font-mono">
                   <strong>Recency:</strong> {dateRanges.find(r => r.value === dateRange)?.label}
                 </span>
+                {includeLinkedIn && (
+                  <span className="px-2 py-1 bg-gray-100 border border-gray-300 text-xs font-mono">
+                    <strong>LinkedIn:</strong> Enabled
+                  </span>
+                )}
                 {companies && (
                   <span className="px-2 py-1 bg-gray-100 border border-gray-300 text-xs font-mono">
                     <strong>Companies:</strong> {companies}
@@ -713,6 +773,46 @@ function JobFinderTryContent() {
             </ul>
           </div>
         </section>
+      )}
+      {/* LinkedIn Disclaimer Modal */}
+      {showLinkedInDisclaimer && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="border-2 border-black bg-white p-6 max-w-md mx-4">
+            <div className="inline-block px-2 py-0.5 bg-black text-white text-xs font-mono font-bold mb-3">
+              EXPERIMENTAL
+            </div>
+            <h3 className="text-lg font-bold mb-2">LinkedIn Search Disclaimer</h3>
+            <div className="space-y-3 text-sm text-gray-700 mb-6">
+              <p>LinkedIn search is <strong>experimental</strong>. A few things to know:</p>
+              <ul className="list-disc pl-5 space-y-1">
+                <li>You must be <strong>logged into LinkedIn</strong> in your browser for best results</li>
+                <li>Some results may still show a login prompt</li>
+                <li>LinkedIn may limit the number of results you can view</li>
+              </ul>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  posthog?.capture('linkedin_disclaimer_dismissed');
+                  setShowLinkedInDisclaimer(false);
+                }}
+                className="flex-1 px-4 py-3 border-2 border-gray-300 bg-white text-black font-mono font-bold text-sm hover:border-black transition-colors"
+              >
+                CANCEL
+              </button>
+              <button
+                onClick={() => {
+                  posthog?.capture('linkedin_toggled', { enabled: true });
+                  setIncludeLinkedIn(true);
+                  setShowLinkedInDisclaimer(false);
+                }}
+                className="flex-1 px-4 py-3 border-2 border-black bg-black text-white font-mono font-bold text-sm hover:bg-white hover:text-black transition-colors"
+              >
+                I UNDERSTAND, ENABLE
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </AppLayout>
   );

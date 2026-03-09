@@ -39,7 +39,7 @@ export default function JobFinderLanding() {
 
             <p>
               This tool generates customized Google search queries based on your requirements — role,
-              skills, location, and target companies. You get 5-12 copy-paste queries optimized for
+              skills, location, and target companies. You get 5-13 copy-paste queries optimized for
               different scenarios: recent postings, specific ATS platforms, startup boards, LinkedIn X-Ray,
               location-based, remote-only, and more. Click any query to search Google directly.
             </p>
@@ -129,7 +129,7 @@ export default function JobFinderLanding() {
               <div className="text-5xl font-bold mb-3 text-black">02</div>
               <h3 className="text-lg font-bold mb-2">Get Custom Queries</h3>
               <p className="text-sm text-gray-700">
-                Receive 5-12 optimized Google search queries tailored to different scenarios: recent
+                Receive 5-13 optimized Google search queries tailored to different scenarios: recent
                 jobs, specific platforms, startup boards, LinkedIn X-Ray, and more.
               </p>
             </div>
@@ -258,8 +258,8 @@ export default function JobFinderLanding() {
             </div>
             <h3 className="text-xl font-bold mb-3">Alternative Sources</h3>
             <p className="text-sm text-gray-600 mb-4">
-              Go beyond ATS platforms. X-Ray startup job boards (Y Combinator, Wellfound, BuiltIn) and
-              LinkedIn job listings without needing an account.
+              Go beyond ATS platforms. X-Ray startup job boards (Y Combinator, Wellfound, BuiltIn),
+              LinkedIn job listings, and LinkedIn hiring posts from recruiters and hiring managers.
             </p>
             <div className="bg-gray-50 border border-gray-300 p-3 mb-3">
               <code className="text-xs font-mono text-gray-800 break-all">
@@ -333,7 +333,7 @@ export default function JobFinderLanding() {
           <div className="border-2 border-black p-6 bg-white">
             <h3 className="text-lg font-bold mb-2">📋 Multiple Query Variations</h3>
             <p className="text-sm text-gray-700">
-              5-12 different search queries optimized for different scenarios: recent jobs, specific
+              5-13 different search queries optimized for different scenarios: recent jobs, specific
               ATS platforms, startup boards, LinkedIn X-Ray, and more. Each query targets a different
               use case.
             </p>
