@@ -666,7 +666,8 @@ def get_replay_data(year: int, race: str, session_type: str = "Race") -> dict:
         d = dm.get(num, {"tla": f"#{num}", "team": "?", "team_colour": "000000"})
         for s in stops:
             ps = s.get("PitStop", {})
-            lap = int(ps.get("Lap", 0))
+            lap_val = ps.get("Lap", 0)
+            lap = int(lap_val) if str(lap_val).isdigit() else 0
             if lap > 0:
                 pit_by_lap[lap].append({
                     "tla": d["tla"],
@@ -731,7 +732,7 @@ def get_replay_data(year: int, race: str, session_type: str = "Race") -> dict:
                 "compound": tyre["compound"],
                 "tyre_age": tyre["age"],
             })
-        positions.sort(key=lambda x: int(x["position"]) if x.get("position") else 99)
+        positions.sort(key=lambda x: int(x["position"]) if x.get("position") and str(x["position"]).isdigit() else 99)
 
         laps.append({
             "lap": lap_num,
