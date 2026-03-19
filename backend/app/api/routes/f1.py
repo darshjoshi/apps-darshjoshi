@@ -368,6 +368,25 @@ async def track_status(
 
 
 # =============================================================================
+# RACE REPLAY
+# =============================================================================
+
+@router.get("/replay")
+async def replay(
+    year: int = Query(default=2025),
+    race: str = Query(default=""),
+    session_type: str = Query(default="Race"),
+):
+    """Get pre-computed lap-by-lap race data for replay mode."""
+    try:
+        return f1_service.get_replay_data(year, race, session_type)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# =============================================================================
 # GRID VS FINISH
 # =============================================================================
 

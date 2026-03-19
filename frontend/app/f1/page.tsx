@@ -2,10 +2,26 @@
 
 import Link from 'next/link';
 import { AppLayout } from '@/components/layouts/AppLayout';
-import { Flag, Zap, Cloud, Trophy, Gauge, Timer, GitCompare, ArrowUpDown, Clock, BarChart3, Users, History } from 'lucide-react';
+import { Flag, Zap, Cloud, Trophy, Gauge, Timer, GitCompare, ArrowUpDown, Clock, BarChart3, Users, History, Play, SlidersHorizontal } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 const dashboards = [
+  {
+    id: 'replay',
+    name: 'Race Replay',
+    tag: 'NEW',
+    description: 'Relive any race lap-by-lap. Scrubber mode for analysis, cinematic mode for experience.',
+    icon: Play,
+    href: '/f1/replay',
+  },
+  {
+    id: 'compare',
+    name: 'Compare Tool',
+    tag: 'NEW',
+    description: 'Driver vs driver, cross-year, team vs team. Flexible multi-metric comparison.',
+    icon: SlidersHorizontal,
+    href: '/f1/compare',
+  },
   {
     id: 'position-river',
     name: 'Position River',
@@ -157,7 +173,7 @@ export default function F1Landing() {
                     F1
                     <span className="inline-block border-b-4 border-black ml-3">Everything</span>
                   </h1>
-                  <p className="text-sm font-mono text-gray-500 mt-3">12 DASHBOARDS / 33 DATA FEEDS / 2018-2026</p>
+                  <p className="text-sm font-mono text-gray-500 mt-3">12 DASHBOARDS + 2 TOOLS / 33 DATA FEEDS / 2018-2026</p>
                 </div>
                 <Link href="/f1/dashboard">
                   <button className="group px-8 py-4 border-2 border-black bg-black text-white font-mono font-bold text-sm hover:bg-white hover:text-black transition-all duration-200 cursor-pointer relative overflow-hidden">
@@ -216,24 +232,34 @@ export default function F1Landing() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
               {dashboards.map((d, i) => {
                 const Icon = d.icon;
-                return (
+                const content = (
+                  <div className="flex items-start gap-3">
+                    <div className="w-9 h-9 border-2 border-black flex items-center justify-center shrink-0 group-hover:bg-black group-hover:text-white transition-all duration-200">
+                      <Icon className="w-4 h-4" />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <h3 className="font-bold text-sm truncate">{d.name}</h3>
+                      </div>
+                      <span className="inline-block px-1.5 py-0.5 bg-black text-white text-[10px] font-mono font-bold tracking-wider mb-2">
+                        {d.tag}
+                      </span>
+                      <p className="text-xs text-gray-600 leading-relaxed">{d.description}</p>
+                    </div>
+                  </div>
+                );
+
+                return d.href ? (
+                  <Link key={d.id} href={d.href}
+                    className="p-5 border-b border-r border-gray-200 hover:bg-gray-50 transition-all duration-200 cursor-pointer group"
+                  >
+                    {content}
+                  </Link>
+                ) : (
                   <div key={d.id}
                     className="p-5 border-b border-r border-gray-200 hover:bg-gray-50 transition-all duration-200 cursor-default group"
                   >
-                    <div className="flex items-start gap-3">
-                      <div className="w-9 h-9 border-2 border-black flex items-center justify-center shrink-0 group-hover:bg-black group-hover:text-white transition-all duration-200">
-                        <Icon className="w-4 h-4" />
-                      </div>
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <h3 className="font-bold text-sm truncate">{d.name}</h3>
-                        </div>
-                        <span className="inline-block px-1.5 py-0.5 bg-black text-white text-[10px] font-mono font-bold tracking-wider mb-2">
-                          {d.tag}
-                        </span>
-                        <p className="text-xs text-gray-600 leading-relaxed">{d.description}</p>
-                      </div>
-                    </div>
+                    {content}
                   </div>
                 );
               })}

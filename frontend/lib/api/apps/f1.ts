@@ -69,6 +69,10 @@ export const f1API = {
   getTrackStatus: (year: number, race: string, sessionType = 'Race') =>
     api.get(`/f1/track-status?year=${year}&race=${race}&session_type=${sessionType}`),
 
+  // Race Replay
+  getReplayData: (year: number, race: string, sessionType = 'Race') =>
+    api.get(`/f1/replay?year=${year}&race=${race}&session_type=${sessionType}`),
+
   // Grid vs Finish
   getGridVsFinish: (year: number, race: string, sessionType = 'Race') =>
     api.get(`/f1/grid-vs-finish?year=${year}&race=${race}&session_type=${sessionType}`),

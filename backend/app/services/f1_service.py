@@ -579,6 +579,188 @@ def get_track_status(year: int, race: str, session_type: str = "Race") -> dict:
 
 
 # =============================================================================
+# RACE REPLAY (pre-computed lap-by-lap state)
+# =============================================================================
+
+def get_replay_data(year: int, race: str, session_type: str = "Race") -> dict:
+    """Pre-compute entire race into lap-by-lap state for race replay."""
+    path, race_name = _find_session(year, race, session_type)
+    if not path:
+        raise ValueError(f"No session found for '{race}' in {year}")
+
+    dm = _driver_map(path)
+
+    # 1. Process TimingData stream to get lap-by-lap state
+    stream_text = _get_stream(path, "TimingData")
+    state = _get_keyframe(path, "TimingData")
+
+    lap_snapshots = {}  # lap_num -> snapshot of all drivers
+    prev_lap_nums = {}  # driver_num -> last seen lap number
+    max_lap = 0
+
+    for line in stream_text.strip().split("\n"):
+        ts, ds = _parse_stream_line(line)
+        if not ds:
+            continue
+        try:
+            state = _deep_merge(state, json.loads(ds))
+        except json.JSONDecodeError:
+            continue
+
+        # Check if any driver completed a new lap
+        for num, info in state.get("Lines", {}).items():
+            if not isinstance(info, dict):
+                continue
+            lap_num = info.get("NumberOfLaps")
+            if not lap_num:
+                continue
+            if lap_num != prev_lap_nums.get(num):
+                prev_lap_nums[num] = lap_num
+                if lap_num > max_lap:
+                    max_lap = lap_num
+
+                # Take snapshot of ALL drivers at this lap boundary
+                if lap_num not in lap_snapshots:
+                    snapshot = {}
+                    for dnum, dinfo in state.get("Lines", {}).items():
+                        if not isinstance(dinfo, dict):
+                            continue
+                        d = dm.get(dnum, {"tla": f"#{dnum}", "team": "?", "team_colour": "000000"})
+                        lt = dinfo.get("LastLapTime", {})
+                        last_lap_val = lt.get("Value", "") if isinstance(lt, dict) else ""
+                        interval_data = dinfo.get("IntervalToPositionAhead", {})
+                        interval_val = interval_data.get("Value", "") if isinstance(interval_data, dict) else ""
+                        snapshot[dnum] = {
+                            "num": dnum,
+                            "tla": d["tla"],
+                            "team": d["team"],
+                            "team_colour": d.get("team_colour", "000000"),
+                            "position": dinfo.get("Position"),
+                            "gap": dinfo.get("GapToLeader", ""),
+                            "interval": interval_val,
+                            "last_lap": last_lap_val,
+                            "laps": dinfo.get("NumberOfLaps", 0),
+                        }
+                    lap_snapshots[lap_num] = snapshot
+
+    # 2. Build tyre lookup: (driver_num, lap) -> {compound, age}
+    tyres = _get_keyframe(path, "TyreStintSeries").get("Stints", {})
+    tyre_lookup = {}
+    for num, stints in tyres.items():
+        if not isinstance(stints, list):
+            continue
+        for s in stints:
+            if not isinstance(s, dict):
+                continue
+            compound = s.get("Compound", "?")
+            start = s.get("StartLaps", 0)
+            total = s.get("TotalLaps", 0)
+            for lap_offset in range(total):
+                lap = start + lap_offset + 1
+                tyre_lookup[(num, lap)] = {"compound": compound, "age": lap_offset + 1}
+
+    # 3. Index pit stops by lap
+    pit_times = _get_keyframe(path, "PitStopSeries").get("PitTimes", {})
+    pit_by_lap = defaultdict(list)
+    for num, stops in pit_times.items():
+        d = dm.get(num, {"tla": f"#{num}", "team": "?", "team_colour": "000000"})
+        for s in stops:
+            ps = s.get("PitStop", {})
+            lap = int(ps.get("Lap", 0))
+            if lap > 0:
+                pit_by_lap[lap].append({
+                    "tla": d["tla"],
+                    "team": d["team"],
+                    "time": ps.get("PitStopTime", ""),
+                    "lane_time": ps.get("PitLaneTime", ""),
+                })
+
+    # 4. Index race control messages by lap
+    msgs = _get_keyframe(path, "RaceControlMessages").get("Messages", [])
+    if isinstance(msgs, dict):
+        msgs = list(msgs.values())
+    rc_by_lap = defaultdict(list)
+    for m in msgs:
+        if isinstance(m, dict):
+            lap = m.get("Lap", "")
+            rc_by_lap[lap].append({
+                "message": m.get("Message", ""),
+                "flag": m.get("Flag", ""),
+                "category": m.get("Category", ""),
+            })
+
+    # 5. Track status timeline
+    session_data = _get_keyframe(path, "SessionData")
+    status_series = session_data.get("StatusSeries", [])
+    if isinstance(status_series, dict):
+        status_series = list(status_series.values())
+    status_map = {
+        "1": "AllClear", "2": "Yellow", "3": "Green",
+        "4": "SafetyCar", "5": "Red", "6": "VSC", "7": "VSCEnding",
+    }
+    status_changes = []
+    for s in status_series:
+        if isinstance(s, dict):
+            status_changes.append({
+                "timestamp": s.get("Utc", ""),
+                "status": status_map.get(s.get("TrackStatus", ""), "Unknown"),
+            })
+
+    # 6. Weather (latest snapshot)
+    w = _get_keyframe(path, "WeatherData")
+    weather = {
+        "air_temp": w.get("AirTemp", ""),
+        "track_temp": w.get("TrackTemp", ""),
+        "humidity": w.get("Humidity", ""),
+        "rainfall": w.get("Rainfall", "0") != "0",
+        "wind_speed": w.get("WindSpeed", ""),
+    }
+
+    # Build laps array
+    laps = []
+    current_status = "AllClear"
+    for lap_num in range(1, max_lap + 1):
+        snap = lap_snapshots.get(lap_num, {})
+
+        # Build positions list sorted by position
+        positions = []
+        for dnum, dsnap in snap.items():
+            tyre = tyre_lookup.get((dnum, lap_num), {"compound": "?", "age": 0})
+            positions.append({
+                **dsnap,
+                "compound": tyre["compound"],
+                "tyre_age": tyre["age"],
+            })
+        positions.sort(key=lambda x: int(x["position"]) if x.get("position") else 99)
+
+        laps.append({
+            "lap": lap_num,
+            "positions": positions,
+            "pit_stops": pit_by_lap.get(lap_num, []),
+            "race_control": rc_by_lap.get(lap_num, []) + rc_by_lap.get(str(lap_num), []),
+            "track_status": current_status,
+            "weather": weather,
+        })
+
+    # Build drivers dict
+    drivers_dict = {}
+    for num, d in dm.items():
+        drivers_dict[num] = {
+            "tla": d["tla"],
+            "team": d["team"],
+            "team_colour": d.get("team_colour", "000000"),
+        }
+
+    return {
+        "race_name": race_name,
+        "year": year,
+        "total_laps": max_lap,
+        "drivers": drivers_dict,
+        "laps": laps,
+    }
+
+
+# =============================================================================
 # TELEMETRY (per-lap CarData.z)
 # =============================================================================
 

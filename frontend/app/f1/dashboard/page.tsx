@@ -8,6 +8,10 @@ import {
   LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, Cell, AreaChart, Area,
 } from 'recharts';
+import { COMPOUND_COLORS, CHART_TOOLTIP, CHART_GRID, CHART_AXIS } from '@/components/f1/chart-config';
+import { PanelHeader } from '@/components/f1/PanelHeader';
+import { Skeleton } from '@/components/f1/Skeleton';
+import { RaceSelector } from '@/components/f1/RaceSelector';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -34,67 +38,6 @@ const TABS: { id: DashboardTab; label: string; icon: any }[] = [
   { id: 'history', label: 'HISTORY', icon: History },
 ];
 
-const COMPOUND_COLORS: Record<string, string> = {
-  SOFT: '#E8002D', MEDIUM: '#FFC700', HARD: '#EEEEEE',
-  INTERMEDIATE: '#39B54A', WET: '#0067FF',
-};
-
-const CHART_TOOLTIP = {
-  contentStyle: {
-    fontFamily: 'var(--font-geist-mono), monospace',
-    fontSize: 11,
-    border: '2px solid #000',
-    borderRadius: 0,
-    backgroundColor: '#fff',
-    boxShadow: '4px 4px 0 rgba(0,0,0,0.1)',
-    padding: '8px 12px',
-  },
-  cursor: { stroke: '#000', strokeDasharray: '4 4' },
-};
-
-const CHART_GRID = { strokeDasharray: '3 3', stroke: '#e5e5e5', strokeOpacity: 0.8 };
-const CHART_AXIS = { fontSize: 10, fontFamily: 'var(--font-geist-mono), monospace', fill: '#666' };
-
-// ─── Skeleton Loader ─────────────────────────────────────────────────────────
-
-function Skeleton() {
-  return (
-    <div className="animate-pulse space-y-4 p-2">
-      <div className="h-6 bg-gray-200 w-1/3" />
-      <div className="h-3 bg-gray-100 w-1/2" />
-      <div className="mt-6 space-y-2">
-        {Array.from({ length: 8 }).map((_, i) => (
-          <div key={i} className="flex gap-3 items-center" style={{ animationDelay: `${i * 50}ms` }}>
-            <div className="h-4 bg-gray-200 w-8" />
-            <div className="h-4 bg-gray-100 flex-1" />
-            <div className="h-4 bg-gray-200 w-16" />
-          </div>
-        ))}
-      </div>
-      <div className="h-[300px] bg-gray-50 border border-gray-200 mt-4 flex items-center justify-center">
-        <Loader2 className="w-6 h-6 text-gray-300 animate-spin" />
-      </div>
-    </div>
-  );
-}
-
-// ─── Panel Header ────────────────────────────────────────────────────────────
-
-function PanelHeader({ title, subtitle, badge }: { title: string; subtitle: string; badge?: string }) {
-  return (
-    <div className="mb-6">
-      <div className="flex items-center gap-3 mb-1">
-        <h3 className="text-xl font-bold tracking-tight">{title}</h3>
-        {badge && (
-          <span className="px-2 py-0.5 bg-black text-white text-[10px] font-mono font-bold tracking-widest">
-            {badge}
-          </span>
-        )}
-      </div>
-      <p className="text-xs font-mono text-gray-400">{subtitle}</p>
-    </div>
-  );
-}
 
 // ─── Main Dashboard ──────────────────────────────────────────────────────────
 
@@ -158,51 +101,16 @@ export default function F1Dashboard() {
   return (
     <AppLayout appName="F1 EVERYTHING" backUrl="/f1">
       {/* Race Selector */}
-      <section className="mb-4">
-        <div className="border-2 border-black bg-white relative overflow-hidden">
-          <div className="absolute top-0 left-0 w-full h-0.5 bg-gradient-to-r from-red-500 via-black to-red-500" />
-          {/* Year + selected race on one row */}
-          <div className="flex items-center gap-0 divide-x-2 divide-black pt-0.5">
-            <div className="flex items-center gap-0.5 px-3 py-2 shrink-0">
-              {seasons.map(s => (
-                <button key={s.year} onClick={() => { setSelectedYear(s.year); setSelectedRace(''); setRacePickerOpen(false); }}
-                  className={`px-2.5 py-1 font-mono text-xs font-bold transition-all duration-150 cursor-pointer ${
-                    selectedYear === s.year
-                      ? 'bg-black text-white'
-                      : 'text-gray-400 hover:text-black'
-                  }`}>
-                  {s.year}
-                </button>
-              ))}
-            </div>
-            <button
-              onClick={() => setRacePickerOpen(!racePickerOpen)}
-              className="flex-1 flex items-center justify-between px-4 py-2.5 font-mono text-sm font-bold cursor-pointer hover:bg-gray-50 transition-colors duration-150"
-            >
-              <span>{selectedRace ? (races.find(r => r.name === selectedRace)?.location || selectedRace) : 'Select Grand Prix'}</span>
-              <span className={`text-gray-400 transition-transform duration-200 ${racePickerOpen ? 'rotate-180' : ''}`}>&#9662;</span>
-            </button>
-          </div>
-          {/* Expandable race grid */}
-          {racePickerOpen && (
-            <div className="border-t-2 border-black p-3 bg-gray-50">
-              <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-1">
-                {races.map(r => (
-                  <button key={r.name}
-                    onClick={() => { setSelectedRace(r.name); setRacePickerOpen(false); }}
-                    className={`px-2 py-2 font-mono text-[11px] font-bold transition-all duration-150 cursor-pointer text-center ${
-                      selectedRace === r.name
-                        ? 'bg-black text-white'
-                        : 'bg-white border border-gray-200 text-gray-600 hover:border-black hover:text-black'
-                    }`}>
-                    {r.location || r.country}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      </section>
+      <RaceSelector
+        seasons={seasons}
+        races={races}
+        selectedYear={selectedYear}
+        setSelectedYear={(y) => { setSelectedYear(y); setSelectedRace(''); }}
+        selectedRace={selectedRace}
+        setSelectedRace={setSelectedRace}
+        racePickerOpen={racePickerOpen}
+        setRacePickerOpen={setRacePickerOpen}
+      />
 
       {/* Dashboard Tabs */}
       <section className="mb-4">
