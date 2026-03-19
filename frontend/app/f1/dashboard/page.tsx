@@ -107,6 +107,7 @@ export default function F1Dashboard() {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [racePickerOpen, setRacePickerOpen] = useState(false);
 
   useEffect(() => {
     f1API.getSeasons().then(r => setSeasons(r.data.seasons)).catch(() => {});
@@ -160,60 +161,62 @@ export default function F1Dashboard() {
       <section className="mb-4">
         <div className="border-2 border-black bg-white relative overflow-hidden">
           <div className="absolute top-0 left-0 w-full h-0.5 bg-gradient-to-r from-red-500 via-black to-red-500" />
-          <div className="p-4 pt-5">
-            <div className="flex flex-col md:flex-row gap-4">
-              <div className="flex-shrink-0">
-                <label className="block text-[10px] font-mono font-bold text-gray-400 mb-1.5 tracking-widest">SEASON</label>
-                <div className="flex flex-wrap gap-1">
-                  {seasons.map(s => (
-                    <button key={s.year} onClick={() => { setSelectedYear(s.year); setSelectedRace(''); }}
-                      className={`px-3 py-1.5 border-2 font-mono text-xs font-bold transition-all duration-150 cursor-pointer ${
-                        selectedYear === s.year
-                          ? 'border-black bg-black text-white shadow-[2px_2px_0_rgba(0,0,0,0.2)]'
-                          : 'border-gray-200 bg-white text-gray-600 hover:border-black hover:text-black'
-                      }`}>
-                      {s.year}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div className="flex-1">
-                <label className="block text-[10px] font-mono font-bold text-gray-400 mb-1.5 tracking-widest">GRAND PRIX</label>
-                <div className="flex flex-wrap gap-1">
-                  {races.map(r => (
-                    <button key={r.name} onClick={() => setSelectedRace(r.name)}
-                      className={`px-3 py-1.5 border-2 font-mono text-xs font-bold transition-all duration-150 cursor-pointer ${
-                        selectedRace === r.name
-                          ? 'border-black bg-black text-white shadow-[2px_2px_0_rgba(0,0,0,0.2)]'
-                          : 'border-gray-200 bg-white text-gray-600 hover:border-black hover:text-black'
-                      }`}>
-                      {r.location || r.country}
-                    </button>
-                  ))}
-                </div>
+          {/* Year + selected race on one row */}
+          <div className="flex items-center gap-0 divide-x-2 divide-black pt-0.5">
+            <div className="flex items-center gap-0.5 px-3 py-2 shrink-0">
+              {seasons.map(s => (
+                <button key={s.year} onClick={() => { setSelectedYear(s.year); setSelectedRace(''); setRacePickerOpen(false); }}
+                  className={`px-2.5 py-1 font-mono text-xs font-bold transition-all duration-150 cursor-pointer ${
+                    selectedYear === s.year
+                      ? 'bg-black text-white'
+                      : 'text-gray-400 hover:text-black'
+                  }`}>
+                  {s.year}
+                </button>
+              ))}
+            </div>
+            <button
+              onClick={() => setRacePickerOpen(!racePickerOpen)}
+              className="flex-1 flex items-center justify-between px-4 py-2.5 font-mono text-sm font-bold cursor-pointer hover:bg-gray-50 transition-colors duration-150"
+            >
+              <span>{selectedRace ? (races.find(r => r.name === selectedRace)?.location || selectedRace) : 'Select Grand Prix'}</span>
+              <span className={`text-gray-400 transition-transform duration-200 ${racePickerOpen ? 'rotate-180' : ''}`}>&#9662;</span>
+            </button>
+          </div>
+          {/* Expandable race grid */}
+          {racePickerOpen && (
+            <div className="border-t-2 border-black p-3 bg-gray-50">
+              <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-1">
+                {races.map(r => (
+                  <button key={r.name}
+                    onClick={() => { setSelectedRace(r.name); setRacePickerOpen(false); }}
+                    className={`px-2 py-2 font-mono text-[11px] font-bold transition-all duration-150 cursor-pointer text-center ${
+                      selectedRace === r.name
+                        ? 'bg-black text-white'
+                        : 'bg-white border border-gray-200 text-gray-600 hover:border-black hover:text-black'
+                    }`}>
+                    {r.location || r.country}
+                  </button>
+                ))}
               </div>
             </div>
-          </div>
+          )}
         </div>
       </section>
 
       {/* Dashboard Tabs */}
       <section className="mb-4">
-        <div className="flex flex-wrap gap-0.5 bg-gray-100 border-2 border-black p-1">
-          {TABS.map(tab => {
-            const Icon = tab.icon;
-            return (
-              <button key={tab.id} onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-1.5 px-3 py-2 font-mono text-[11px] font-bold transition-all duration-150 cursor-pointer ${
-                  activeTab === tab.id
-                    ? 'bg-black text-white shadow-[2px_2px_0_rgba(0,0,0,0.3)]'
-                    : 'bg-white text-gray-500 hover:text-black hover:bg-gray-50'
-                }`}>
-                <Icon className="w-3.5 h-3.5" />
-                {tab.label}
-              </button>
-            );
-          })}
+        <div className="flex flex-wrap gap-1">
+          {TABS.map(tab => (
+            <button key={tab.id} onClick={() => setActiveTab(tab.id)}
+              className={`px-3 py-1.5 font-mono text-[11px] font-bold transition-all duration-150 cursor-pointer ${
+                activeTab === tab.id
+                  ? 'bg-black text-white'
+                  : 'border border-gray-200 text-gray-400 hover:text-black hover:border-black'
+              }`}>
+              {tab.label}
+            </button>
+          ))}
         </div>
       </section>
 

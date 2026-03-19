@@ -159,6 +159,15 @@ body {
   background-color: #f0f0f0;
 }
 
+/* Hide scrollbar but keep scroll functionality */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
 /* Content fade-in animation */
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(8px); }
