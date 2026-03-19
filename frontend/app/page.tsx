@@ -26,6 +26,13 @@ const apps: App[] = [
     status: 'active',
   },
   {
+    id: 'f1',
+    name: 'F1 Everything',
+    description: 'The most comprehensive free F1 analytics dashboard. 12 interactive views using data feeds nobody else touches — overtakes, weather, championship predictions, and more.',
+    href: '/f1',
+    status: 'active',
+  },
+  {
     id: 'scribe',
     name: 'Scribe',
     description: 'A local Mac app to store meeting transcripts and chat with them later at any time. Purely AI enabled.',

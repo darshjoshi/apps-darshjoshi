@@ -13,3 +13,6 @@ python-multipart==0.0.20
 pdfplumber==0.11.0  # PDF parsing
 openai>=1.54.0  # OpenAI API client (compatible with httpx 0.28+)
 reportlab>=4.4.0  # PDF generation (pure Python, built-in fonts)
+
+# F1 Everything dependencies
+requests>=2.31.0  # HTTP client for F1 static API + Jolpica

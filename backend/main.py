@@ -2,7 +2,7 @@ import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
-from app.api.routes import example_app, ats_boss
+from app.api.routes import example_app, ats_boss, f1
 
 # Configure logging for the entire application
 logging.basicConfig(
@@ -56,6 +56,7 @@ async def health_check():
 # Include routers
 app.include_router(example_app.router, prefix=settings.API_V1_STR)
 app.include_router(ats_boss.router, prefix=settings.API_V1_STR)
+app.include_router(f1.router, prefix=settings.API_V1_STR)
 
 
 # Startup event
