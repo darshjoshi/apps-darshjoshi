@@ -13,3 +13,9 @@ python-multipart==0.0.20
 pdfplumber==0.11.0  # PDF parsing
 openai>=1.54.0  # OpenAI API client (compatible with httpx 0.28+)
 reportlab>=4.4.0  # PDF generation (pure Python, built-in fonts)
+
+# F1 Live dependencies (SignalR pipeline)
+websockets>=13.0   # raw WS for SignalR Core protocol
+aiohttp>=3.9.0     # async HTTP for negotiate step
+certifi            # CA bundle for SSL (needed on macOS Python)
+PyJWT>=2.0.0       # JWT decode for F1_TV_TOKEN validation (future)
