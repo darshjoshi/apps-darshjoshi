@@ -25,6 +25,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, WebSocket, WebSock
 from app.config import settings
 from app.dependencies import verify_api_key
 from app.services.f1_live.manager import manager
+from app.services.f1_live import schedule as _schedule_mod
 
 # Guard: replay.py is listed in .gitignore and absent on Render.
 # Import it if available; action=replay returns 503 when it's None.
@@ -178,3 +179,19 @@ async def stream(ws: WebSocket):
         logger.warning(f"WS error: {e}")
     finally:
         manager.unregister(ws)
+
+
+# --- REST: schedule (F1 calendar + per-session UTC times, for the app's notifications) ---
+
+@router.get("/schedule", dependencies=[Depends(verify_api_key)])
+async def get_schedule():
+    """Season schedule (rounds + per-session UTC start times) for the app's race-start
+    notifications. Cached server-side; sourced from Jolpica."""
+    try:
+        return await _schedule_mod.get_schedule()
+    except Exception as e:
+        logger.warning("schedule endpoint failed: %s", e)
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Schedule temporarily unavailable",
+        )
